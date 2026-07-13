@@ -1,0 +1,48 @@
+[project]
+name = "dictionary-fastapi"
+version = "0.1.0"
+description = "English-Ukrainian dictionary built with FastAPI"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.16.0",
+  "fastapi>=0.116.0",
+  "jinja2>=3.1.6",
+  "openai>=1.98.0",
+  "psycopg[binary]>=3.2.0",
+  "pydantic-settings>=2.10.0",
+  "python-multipart>=0.0.20",
+  "sqlalchemy>=2.0.41",
+  "uvicorn[standard]>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.1",
+  "pre-commit>=4.2.0",
+  "pytest>=8.4.1",
+  "pytest-asyncio>=1.1.0",
+  "pytest-cov>=6.2.1",
+  "ruff>=0.12.3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
