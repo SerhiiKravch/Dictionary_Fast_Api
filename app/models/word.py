@@ -2,11 +2,9 @@ from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-class Base(DeclarativeBase):
-    pass
+from app.db import Base
 
 
 class LanguageCode(StrEnum):
