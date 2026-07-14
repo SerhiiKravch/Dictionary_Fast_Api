@@ -1,28 +1,10 @@
 from datetime import datetime
-from enum import StrEnum
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
-
-
-class LanguageCode(StrEnum):
-    ENGLISH = "en"
-    UKRAINIAN = "uk"
-
-
-class PartOfSpeech(StrEnum):
-    NOUN = "noun"
-    VERB = "verb"
-    ADJECTIVE = "adjective"
-    ADVERB = "adverb"
-    PRONOUN = "pronoun"
-    PREPOSITION = "preposition"
-    CONJUNCTION = "conjunction"
-    INTERJECTION = "interjection"
-    PHRASE = "phrase"
-    OTHER = "other"
+from app.models.enums import LanguageCode, PartOfSpeech
 
 
 class Word(Base):
