@@ -20,8 +20,8 @@ Implemented now:
 
 Still missing:
 - working `FastAPI` application entrypoint
-- environment-driven settings in `app/config.py`
-- SQLAlchemy engine/session setup in `app/db.py`
+- environment-driven settings in `app/core/config.py`
+- SQLAlchemy engine/session setup in `app/core/db.py`
 - Alembic configuration and migrations
 - page/API route implementation
 - OpenAI service implementation
@@ -37,8 +37,10 @@ Current repository state:
 app/
   __init__.py
   main.py
-  config.py
-  db.py
+  core/
+    __init__.py
+    config.py
+    db.py
   models/
     __init__.py
     word.py
@@ -72,7 +74,6 @@ README.md
 ### Models
 
 [`app/models/word.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/models/word.py) currently defines:
-- `Base`
 - `LanguageCode`
 - `PartOfSpeech`
 - `Word`
@@ -97,6 +98,19 @@ These schemas already cover:
 - input validation for word lookup
 - validation of generated translation options
 - validation of a generated dictionary payload before DB save
+
+### Core infrastructure
+
+[`app/core/config.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/core/config.py) contains:
+- application settings via `pydantic-settings`
+- environment file loading from `.env`
+- database/OpenAI configuration defaults
+
+[`app/core/db.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/core/db.py) contains:
+- shared SQLAlchemy `Base`
+- `engine`
+- `SessionLocal`
+- `get_db()` dependency
 
 ## Tooling
 
@@ -130,7 +144,7 @@ The repository already includes:
 - `docker-compose.yml` with PostgreSQL 16
 
 Important note:
-- the container layout is prepared, but the app is not runnable yet because `app/main.py`, `app/config.py`, `app/db.py`, and route modules are still not implemented
+- the container layout is prepared, but the app is not runnable yet because route modules and the main dictionary flow are still not implemented
 
 ## Planned Product Behavior
 
@@ -150,10 +164,10 @@ Target application behavior:
 - `app/main.py`
   Create the FastAPI app, register routers, and expose health/docs endpoints.
 
-- `app/config.py`
+- `app/core/config.py`
   Centralize settings from environment variables via `pydantic-settings`.
 
-- `app/db.py`
+- `app/core/db.py`
   Configure SQLAlchemy engine, session factory, and request-scoped DB dependency.
 
 - `app/models/word.py`
@@ -179,8 +193,8 @@ Target application behavior:
 ### 1. Make the app runnable
 
 Implement:
-- `app/config.py`
-- `app/db.py`
+- `app/core/config.py`
+- `app/core/db.py`
 - `app/main.py`
 
 Minimum expected result:
@@ -190,14 +204,14 @@ Minimum expected result:
 
 ### 2. Add DB wiring
 
-Implement in `app/db.py`:
+Implement in `app/core/db.py`:
 - `create_engine(...)`
 - `sessionmaker(...)`
 - `get_db()` dependency
 
 ### 3. Add environment settings
 
-Implement in `app/config.py`:
+Implement in `app/core/config.py`:
 - `APP_NAME`
 - `APP_DEBUG`
 - `DATABASE_URL`
@@ -252,9 +266,8 @@ docker compose up --build
 ## Current Gaps / Risks
 
 - `README.md` previously described the project as a fully empty scaffold; that is no longer true
-- `app/main.py`, `app/config.py`, `app/db.py`, `app/routes/api.py`, and `app/routes/pages.py` are still effectively placeholders
+- `app/main.py`, `app/routes/api.py`, and `app/routes/pages.py` are still effectively placeholders
 - `.env.example` still needs real values
-- there is no Alembic setup yet
 - there are no tests yet
 - Docker startup is not verified end-to-end at the current stage
 

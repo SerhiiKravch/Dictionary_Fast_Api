@@ -1,6 +1,7 @@
 """ORM models package."""
 
-from app.models.word import Base, LanguageCode, PartOfSpeech, TranslationOption, Word
+from app.core.db import Base
+from app.models.word import LanguageCode, PartOfSpeech, TranslationOption, Word
 
 __all__ = [
     "Base",

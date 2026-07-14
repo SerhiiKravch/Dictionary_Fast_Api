@@ -4,8 +4,8 @@ from sqlalchemy import engine_from_config, pool
 
 import app.models.word  # noqa: F401
 from alembic import context
-from app.config import get_settings
-from app.models.word import Base
+from app.core.config import get_settings
+from app.core.db import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
