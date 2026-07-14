@@ -12,8 +12,3 @@ register_exception_handlers(app)
 
 app.include_router(pages_router)
 app.include_router(api_router)
-
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}

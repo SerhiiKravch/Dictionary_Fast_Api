@@ -97,24 +97,24 @@ README.md
 
 ### Core infrastructure
 
-[`app/core/config.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/core/config.py) contains:
+`app/core/config.py` contains:
 - application settings via `pydantic-settings`
 - environment loading from `.env`
 - database and OpenAI defaults
 
-[`app/core/db.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/core/db.py) contains:
+`app/core/db.py` contains:
 - shared SQLAlchemy `Base`
 - `engine`
 - `SessionLocal`
 - `get_db()` dependency
 
-[`app/core/error_handlers.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/core/error_handlers.py) contains:
+`app/core/error_handlers.py` contains:
 - FastAPI exception handler registration
 - mapping of domain/integration/persistence exceptions to HTTP responses
 
 ### Exceptions
 
-[`app/exceptions/`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/exceptions) currently groups:
+`app/exceptions/` currently groups:
 - base app exceptions
 - dictionary/domain exceptions
 - OpenAI integration exceptions
@@ -122,11 +122,11 @@ README.md
 
 ### Models
 
-[`app/models/enums.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/models/enums.py) defines:
+`app/models/enums.py` defines:
 - `LanguageCode`
 - `PartOfSpeech`
 
-[`app/models/word.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/models/word.py) defines:
+`app/models/word.py` defines:
 - `Word`
 - `TranslationOption`
 
@@ -138,7 +138,7 @@ The models already include:
 
 ### Schemas
 
-[`app/schemas/word.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/schemas/word.py) currently defines:
+`app/schemas/word.py` currently defines:
 - `WordLookupRequest`
 - `AutocompleteItem`
 - `AutocompleteResponse`
@@ -157,18 +157,18 @@ These schemas already cover:
 
 ### Routes
 
-[`app/routes/pages.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/routes/pages.py) currently exposes:
+`app/routes/pages.py` currently exposes:
 - `GET /`
 - `POST /lookup`
 - `GET /word/{slug}`
 
-[`app/routes/api.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/routes/api.py) currently exposes:
+`app/routes/api.py` currently exposes:
 - `GET /api/health`
 - `GET /api/autocomplete`
 
 ### Services
 
-[`app/services/dictionary.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/services/dictionary.py) currently contains:
+`app/services/dictionary.py` currently contains:
 - word normalization
 - direction parsing
 - lookup by direction
@@ -178,7 +178,7 @@ These schemas already cover:
 - creation of `Word` with `TranslationOption[]`
 - orchestration of lookup-or-create flow
 
-[`app/services/openai_service.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/services/openai_service.py) currently contains:
+`app/services/openai_service.py` currently contains:
 - OpenAI client initialization
 - prompt generation
 - structured response parsing
@@ -187,11 +187,11 @@ These schemas already cover:
 ### Database migrations
 
 Alembic is already configured through:
-- [`alembic.ini`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/alembic.ini)
-- [`alembic/env.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/alembic/env.py)
+- `alembic.ini`
+- `alembic/env.py`
 
 The first migration already exists:
-- [`alembic/versions/4629186736bf_create_words_and_translation_options.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/alembic/versions/4629186736bf_create_words_and_translation_options.py)
+- `alembic/versions/4629186736bf_create_words_and_translation_options.py`
 
 ## Tooling
 
