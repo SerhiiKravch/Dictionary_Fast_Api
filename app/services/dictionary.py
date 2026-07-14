@@ -3,10 +3,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.exceptions.database import DatabaseIntegrityError
-from app.exceptions.dictionary import EmptyWordError, InvalidDirectionError
+from app.exceptions.dictionary import (
+    EmptyWordError,
+    InvalidDirectionError,
+    WordNotFoundError,
+)
 from app.models.enums import LanguageCode
 from app.models.word import TranslationOption, Word
-from app.schemas.word import GeneratedWordPayload
+from app.schemas.word import GeneratedWordPayload, WordLookupRequest
+from app.services.openai_service import OpenAIService
 
 
 def normalize_word(word: str) -> str:
@@ -36,6 +41,36 @@ def get_existing_word(
         Word.target_language == target_language.value,
     )
     return db.execute(stmt).scalar_one_or_none()
+
+
+def get_word_by_slug(db: Session, slug: str) -> Word:
+    stmt = select(Word).where(Word.slug == slug)
+    word = db.execute(stmt).scalar_one_or_none()
+
+    if word is None:
+        raise WordNotFoundError(f"Word with slug '{slug}' not found.")
+
+    return word
+
+
+def generate_unique_slug(
+    db: Session,
+    source_word: str,
+    source_language: LanguageCode,
+    target_language: LanguageCode,
+) -> str:
+    base_slug = f"{normalize_word(source_word)}-{source_language.value}-{target_language.value}"
+    slug = base_slug
+    counter = 1
+
+    while True:
+        stmt = select(Word).where(Word.slug == slug)
+        existing = db.execute(stmt).scalar_one_or_none()
+        if existing is None:
+            return slug
+
+        counter += 1
+        slug = f"{base_slug}-{counter}"
 
 
 def create_word_with_options(
@@ -75,3 +110,52 @@ def create_word_with_options(
     except IntegrityError as exc:
         db.rollback()
         raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
+
+
+def autocomplete_words(db: Session, query: str) -> list[str]:
+    normalized = query.strip().lower()
+    if not normalized:
+        return []
+
+    stmt = (
+        select(Word.source_word)
+        .where(Word.source_word.ilike(f"{normalized}%"))
+        .order_by(Word.source_word.asc())
+        .limit(10)
+    )
+
+    return list(db.execute(stmt).scalars().all())
+
+
+def lookup_or_create_word(db: Session, payload: WordLookupRequest) -> Word:
+    normalized_word = normalize_word(payload.word)
+    source_language, target_language = parse_direction(payload.direction)
+
+    existing_word = get_existing_word(
+        db=db,
+        word=normalized_word,
+        source_language=source_language,
+        target_language=target_language,
+    )
+    if existing_word is not None:
+        return existing_word
+
+    openai_service = OpenAIService()
+    generated_payload = openai_service.generate_word_payload(
+        word=normalized_word,
+        source_language=source_language,
+        target_language=target_language,
+    )
+
+    slug = generate_unique_slug(
+        db=db,
+        source_word=generated_payload.source_word,
+        source_language=generated_payload.source_language,
+        target_language=generated_payload.target_language,
+    )
+
+    return create_word_with_options(
+        db=db,
+        payload=generated_payload,
+        slug=slug,
+    )
