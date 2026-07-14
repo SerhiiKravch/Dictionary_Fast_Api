@@ -1,56 +1,59 @@
 # Dictionary FastAPI
 
-FastAPI-based dictionary service scaffold for an English-Ukrainian / Ukrainian-English dictionary with OpenAI-assisted word generation.
+FastAPI-based English-Ukrainian / Ukrainian-English dictionary service with planned OpenAI-assisted word generation.
 
-At the current stage, this repository contains the project infrastructure and developer tooling, but the application code itself has not been implemented yet.
+The repository is no longer just an empty scaffold: it already contains the Python project setup, package layout, initial SQLAlchemy models, and initial Pydantic schemas. The application is still in an early bootstrap stage, so the next focus is wiring configuration, database access, and a runnable FastAPI app.
 
 ## Current Status
 
-The repository is currently at the `project scaffold` stage.
-
-Already prepared:
+Implemented now:
 - Python project initialized with `uv`
-- dependencies and dev-dependencies described in `pyproject.toml`
+- dependencies and dev-dependencies defined in `pyproject.toml`
 - lockfile committed as `uv.lock`
 - `ruff` configured for linting and formatting
-- `pre-commit` configured to run checks before commits
+- `pre-commit` configured for local checks
 - Docker image definition in `Dockerfile`
-- local multi-service setup with PostgreSQL in `docker-compose.yml`
-- Python version pinned in `.python-version`
-- `.gitignore` prepared for Python/uv workflow
+- local `docker-compose.yml` with PostgreSQL
+- package-based `app/` layout
+- initial SQLAlchemy models for `Word` and `TranslationOption`
+- initial Pydantic schemas for lookup and generated payload validation
 
-Not implemented yet:
-- FastAPI application entrypoint
-- routes and page handlers
-- database models and DB session setup
+Still missing:
+- working `FastAPI` application entrypoint
+- environment-driven settings in `app/config.py`
+- SQLAlchemy engine/session setup in `app/db.py`
 - Alembic configuration and migrations
-- OpenAI integration
-- Jinja templates
-- static assets
+- page/API route implementation
+- OpenAI service implementation
+- templates and static assets
 - automated tests
 - populated `.env.example`
 
 ## Repository Layout
 
-Planned application structure:
+Current repository state:
 
 ```text
 app/
+  __init__.py
   main.py
   config.py
   db.py
-  models.py
-  schemas.py
+  models/
+    __init__.py
+    word.py
+  schemas/
+    __init__.py
+    word.py
   routes/
+    __init__.py
     pages.py
     api.py
   services/
+    __init__.py
     dictionary.py
     openai_service.py
   templates/
-    base.html
-    word_list.html
-    word_detail.html
   static/
 tests/
 Dockerfile
@@ -64,45 +67,53 @@ uv.lock
 README.md
 ```
 
-Current real state of the repository:
+## Existing Code
 
-```text
-app/                 # empty for now
-tests/               # empty for now
-Dockerfile
-README               # legacy file
-README.md            # main project documentation
-pyproject.toml
-uv.lock
-docker-compose.yml
-.pre-commit-config.yaml
-.python-version
-.env.example         # currently empty
-.gitignore
-```
+### Models
 
-## Existing Infrastructure
+[`app/models/word.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/models/word.py) currently defines:
+- `Base`
+- `LanguageCode`
+- `PartOfSpeech`
+- `Word`
+- `TranslationOption`
 
-### Dependency and environment management
+The models already include:
+- unique word-per-direction constraint
+- unique slug constraint
+- one-to-many relationship from `Word` to `TranslationOption`
+- timestamps and ordering basics
+
+### Schemas
+
+[`app/schemas/word.py`](/Users/sergiykravchyshyn/Dev/Dictionary_Fast_Api/app/schemas/word.py) currently defines:
+- `WordLookupRequest`
+- `AutocompleteItem`
+- `AutocompleteResponse`
+- `GeneratedTranslationOption`
+- `GeneratedWordPayload`
+
+These schemas already cover:
+- input validation for word lookup
+- validation of generated translation options
+- validation of a generated dictionary payload before DB save
+
+## Tooling
+
+### Dependency management
 
 The project uses `uv` for:
 - dependency installation
 - lockfile generation
 - running local commands
-- reproducible environments
+- reproducible virtual environments
 
-Main dependency file:
-- `pyproject.toml`
+### Linting and formatting
 
-Lockfile:
-- `uv.lock`
-
-### Python tooling
-
-Configured developer tooling:
+Configured tooling:
 - `ruff` for linting
 - `ruff format` for formatting
-- `pre-commit` hooks for automatic checks before commit
+- `pre-commit` hooks for local checks
 
 Current `pre-commit` setup runs:
 - `ruff-check --fix`
@@ -114,46 +125,16 @@ Current `pre-commit` setup runs:
 
 ### Containerization
 
-`Dockerfile` is already prepared to:
-- use Python 3.12 slim image
-- install `uv`
-- install project dependencies from `pyproject.toml` and `uv.lock`
-- run the app with `uvicorn`
-
-`docker-compose.yml` is already prepared with:
-- `db` service using PostgreSQL 16
-- `web` service for FastAPI app
-- environment variable wiring for `DATABASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`
-- local port mapping `8000:8000`
+The repository already includes:
+- `Dockerfile`
+- `docker-compose.yml` with PostgreSQL 16
 
 Important note:
-- the container setup expects `app.main:app` to exist, but that file has not been created yet
-
-### Environment configuration
-
-The repository already contains:
-- `.python-version` with Python `3.12`
-- `.env.example`
-
-Current issue:
-- `.env.example` exists but is empty, so it still needs real template variables
-
-Recommended variables for `.env.example`:
-- `APP_NAME`
-- `APP_ENV`
-- `APP_DEBUG`
-- `DATABASE_URL`
-- `POSTGRES_DB`
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
-- `OPENAI_TIMEOUT_SECONDS`
-- `OPENAI_MAX_RETRIES`
+- the container layout is prepared, but the app is not runnable yet because `app/main.py`, `app/config.py`, `app/db.py`, and route modules are still not implemented
 
 ## Planned Product Behavior
 
-Target behavior of the future application:
+Target application behavior:
 - show a main page with a list of saved words
 - allow selecting translation direction: `en -> uk` or `uk -> en`
 - allow entering a word through an HTML form
@@ -164,170 +145,94 @@ Target behavior of the future application:
 - show a detail page with transcription, translations, context sentence, and origin
 - support autocomplete for existing words
 
-## Recommended Architecture
-
-Suggested responsibilities by module:
+## Recommended Module Responsibilities
 
 - `app/main.py`
-  Create FastAPI app, register routers, static files, and template configuration.
+  Create the FastAPI app, register routers, and expose health/docs endpoints.
 
 - `app/config.py`
-  Centralize settings from environment variables using `pydantic-settings`.
+  Centralize settings from environment variables via `pydantic-settings`.
 
 - `app/db.py`
-  Configure SQLAlchemy engine, session factory, and DB dependency.
+  Configure SQLAlchemy engine, session factory, and request-scoped DB dependency.
 
-- `app/models.py`
-  Define `Word` and `TranslationOption` SQLAlchemy models.
+- `app/models/word.py`
+  Define ORM enums and models for dictionary storage.
 
-- `app/schemas.py`
-  Define request/response schemas and validation models.
+- `app/schemas/word.py`
+  Define request/response schemas and generated payload validation.
 
 - `app/routes/pages.py`
-  HTML endpoints for main page, lookup flow, and word detail page.
+  HTML endpoints for the lookup flow and detail pages.
 
 - `app/routes/api.py`
-  JSON endpoints such as autocomplete and future health/API routes.
+  JSON endpoints such as autocomplete and health/API routes.
 
 - `app/services/dictionary.py`
-  Business logic for normalization, direction parsing, DB lookups, and word creation.
+  Business logic for normalization, direction parsing, lookups, and persistence.
 
 - `app/services/openai_service.py`
-  OpenAI client integration, retries, parsing, validation, and response normalization.
+  OpenAI integration, retries, parsing, validation, and response normalization.
 
 ## What Should Be Implemented Next
 
-### 1. Create the application skeleton
+### 1. Make the app runnable
 
-Create the missing folders and files under `app/`:
-- `main.py`
-- `config.py`
-- `db.py`
-- `models.py`
-- `schemas.py`
-- `routes/pages.py`
-- `routes/api.py`
-- `services/dictionary.py`
-- `services/openai_service.py`
-- `templates/`
-- `static/`
+Implement:
+- `app/config.py`
+- `app/db.py`
+- `app/main.py`
 
-### 2. Implement settings management
+Minimum expected result:
+- `FastAPI()` app exists
+- `/health` route works
+- `uv run uvicorn app.main:app --reload` starts successfully
 
-Add environment-driven configuration in `app/config.py`:
-- app name and debug mode
-- database URL
-- OpenAI API key and model
-- timeout and retry settings
+### 2. Add DB wiring
 
-### 3. Implement database layer
+Implement in `app/db.py`:
+- `create_engine(...)`
+- `sessionmaker(...)`
+- `get_db()` dependency
 
-Add SQLAlchemy setup:
-- engine
-- sessionmaker
-- declarative base
-- request-scoped DB dependency
+### 3. Add environment settings
 
-Then define models:
-- `Word`
-- `TranslationOption`
+Implement in `app/config.py`:
+- `APP_NAME`
+- `APP_DEBUG`
+- `DATABASE_URL`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
 
-Recommended `Word` fields:
-- `id`
-- `source_word`
-- `source_language`
-- `target_language`
-- `slug`
-- `transcription`
-- `primary_translation`
-- `context_sentence`
-- `origin`
-- `created_at`
+### 4. Add Alembic
 
-Recommended `TranslationOption` fields:
-- `id`
-- `word_id`
-- `text`
-- `part_of_speech`
-- `priority`
-- `usage_note`
+Create migrations for:
+- `words`
+- `translation_options`
+- unique constraints already described in the models
 
-### 4. Add Alembic migrations
+### 5. Implement minimal routes
 
-Initialize Alembic and create the first migration for:
-- `words` table
-- `translation_options` table
-- unique constraint for `source_word + source_language + target_language`
-- unique slug constraint
+Add:
+- `GET /health`
+- `GET /api/health`
+- placeholder lookup/autocomplete routes
 
-### 5. Implement business logic
+### 6. Implement OpenAI and dictionary flow
 
-Move domain logic into `app/services/dictionary.py`:
-- normalize user input
-- parse direction
-- check if word exists
-- generate slug
-- create `Word` with `TranslationOption[]`
-- return autocomplete matches
+Once the app and DB are wired:
+- implement `app/services/openai_service.py`
+- implement `app/services/dictionary.py`
+- connect lookup flow to generation and persistence
 
-### 6. Implement OpenAI integration
+### 7. Add tests
 
-In `app/services/openai_service.py`:
-- call OpenAI Responses API
-- request strict JSON output
-- validate payload
-- normalize parts of speech
-- validate context sentence
-- deduplicate translation options
-- retry on temporary failures
-
-### 7. Implement FastAPI routes
-
-#### HTML routes
-- `GET /` for word list page
-- `POST /lookup` for processing a submitted word
-- `GET /word/{slug}` for word detail page
-
-#### API routes
-- `GET /api/autocomplete`
-- optional `GET /api/health`
-
-### 8. Add Jinja templates
-
-Create:
-- `templates/base.html`
-- `templates/word_list.html`
-- `templates/word_detail.html`
-
-The templates should support:
-- word table
-- translation direction form
-- error/success messages
-- detail page with translation options
-- JavaScript autocomplete
-
-### 9. Add tests
-
-Add tests in `tests/` for:
-- existing word redirect
-- new word creation with mocked OpenAI response
-- invalid word handling
-- Ukrainian-to-English flow
-- autocomplete endpoint
-- slug uniqueness
-- OpenAI parsing and validation helpers
-
-### 10. Finalize developer experience
-
-Complete project setup by:
-- filling `.env.example`
-- adding a startup section to the docs once app files exist
-- optionally adding `Makefile` or task aliases
-- optionally adding CI to run `ruff` and `pytest`
+Start with:
+- app startup smoke test
+- schema validation tests
+- model import / DB session tests
 
 ## Suggested Local Workflow
-
-Once the application files are created, the expected workflow will be:
 
 ```bash
 cp .env.example .env
@@ -346,53 +251,13 @@ docker compose up --build
 
 ## Current Gaps / Risks
 
-Current gaps in the repository:
-- no FastAPI code exists yet
-- Docker startup will fail until `app.main:app` is implemented
-- `.env.example` is empty
-- `tests/` is empty
-- no Alembic initialization yet
-- no CI pipeline yet
+- `README.md` previously described the project as a fully empty scaffold; that is no longer true
+- `app/main.py`, `app/config.py`, `app/db.py`, `app/routes/api.py`, and `app/routes/pages.py` are still effectively placeholders
+- `.env.example` still needs real values
+- there is no Alembic setup yet
+- there are no tests yet
+- Docker startup is not verified end-to-end at the current stage
 
-## Milestone Plan
+## Suggested Commit Name
 
-### Milestone 1: App bootstrap
-- create app files
-- create FastAPI instance
-- configure settings
-- connect templates and static files
-
-### Milestone 2: Database and models
-- configure SQLAlchemy
-- define models
-- create Alembic migrations
-- connect PostgreSQL
-
-### Milestone 3: Core dictionary flow
-- implement lookup form flow
-- redirect on existing word
-- create detail page
-- add autocomplete
-
-### Milestone 4: OpenAI generation
-- integrate OpenAI service
-- validate structured output
-- save generated words and options
-- handle retries and user-facing errors
-
-### Milestone 5: Quality and delivery
-- complete tests
-- polish templates
-- add CI
-- verify Docker workflow
-
-## Summary
-
-This repository already has a solid infrastructure base for a FastAPI service:
-- dependency management with `uv`
-- linting/formatting with `ruff`
-- pre-commit hooks
-- Docker setup
-- PostgreSQL service definition
-
-The next major step is implementing the actual application code under `app/` and `tests/`, starting with the FastAPI entrypoint, settings, DB layer, models, and page routes.
+`docs: update README for current project structure and bootstrap status`
