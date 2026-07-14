@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.word import LanguageCode, PartOfSpeech
+from app.models.enums import LanguageCode, PartOfSpeech
 
 
 class WordLookupRequest(BaseModel):
