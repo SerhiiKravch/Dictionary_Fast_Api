@@ -1,5 +1,6 @@
 """Pydantic schemas package."""
 
+from app.schemas.common import ErrorResponse, HealthResponse, MessageResponse
 from app.schemas.word import (
     AutocompleteItem,
     AutocompleteResponse,
@@ -9,6 +10,9 @@ from app.schemas.word import (
 )
 
 __all__ = [
+    "ErrorResponse",
+    "HealthResponse",
+    "MessageResponse",
     "AutocompleteItem",
     "AutocompleteResponse",
     "GeneratedTranslationOption",

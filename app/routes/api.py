@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.schemas.common import HealthResponse
 from app.schemas.word import AutocompleteResponse, WordCreate, WordRead
 from app.services.dictionary import autocomplete_words, create_word_manually, list_words
 
@@ -13,12 +14,12 @@ DbSession = Annotated[Session, Depends(get_db)]
 AutocompleteQuery = Annotated[str, Query(min_length=1, max_length=128)]
 
 
-@router.get("/health")
-def api_health() -> dict[str, str]:
-    return {"status": "ok"}
+@router.get("/health", response_model=HealthResponse, status_code=200)
+def api_health() -> HealthResponse:
+    return HealthResponse(status="ok")
 
 
-@router.get("/autocomplete", response_model=AutocompleteResponse)
+@router.get("/autocomplete", response_model=AutocompleteResponse, status_code=200)
 def autocomplete(
     db: DbSession,
     q: AutocompleteQuery = "",
@@ -27,7 +28,7 @@ def autocomplete(
     return AutocompleteResponse(results=results)
 
 
-@router.get("/words", response_model=list[WordRead])
+@router.get("/words", response_model=list[WordRead], status_code=200)
 def get_words(db: DbSession) -> list[WordRead]:
     words = list_words(db=db)
     return [WordRead.model_validate(word) for word in words]

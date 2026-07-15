@@ -1,8 +1,8 @@
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, selectinload
 
-from app.exceptions.database import DatabaseIntegrityError
+from app.exceptions.database import DatabaseConnectionError, DatabaseIntegrityError
 from app.exceptions.dictionary import (
     EmptyWordError,
     InvalidDirectionError,
@@ -54,12 +54,18 @@ def get_existing_word(
         Word.source_language == source_language.value,
         Word.target_language == target_language.value,
     )
-    return db.execute(stmt).scalar_one_or_none()
+    try:
+        return db.execute(stmt).scalar_one_or_none()
+    except OperationalError as exc:
+        raise DatabaseConnectionError("Database connection failed during word lookup.") from exc
 
 
 def get_word_by_slug(db: Session, slug: str) -> Word:
     stmt = select(Word).where(Word.slug == slug)
-    word = db.execute(stmt).scalar_one_or_none()
+    try:
+        word = db.execute(stmt).scalar_one_or_none()
+    except OperationalError as exc:
+        raise DatabaseConnectionError("Database connection failed during slug lookup.") from exc
 
     if word is None:
         raise WordNotFoundError(f"Word with slug '{slug}' not found.")
@@ -138,6 +144,11 @@ def persist_word_with_options(
                 continue
 
             raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
+        except OperationalError as exc:
+            db.rollback()
+            raise DatabaseConnectionError(
+                "Database connection failed while saving the word."
+            ) from exc
 
     raise DatabaseIntegrityError("Failed to generate a unique slug for the word.")
 
@@ -205,7 +216,10 @@ def autocomplete_words(db: Session, query: str) -> list[str]:
         .limit(10)
     )
 
-    return list(db.execute(stmt).scalars().all())
+    try:
+        return list(db.execute(stmt).scalars().all())
+    except OperationalError as exc:
+        raise DatabaseConnectionError("Database connection failed during autocomplete.") from exc
 
 
 def list_words(db: Session) -> list[Word]:
@@ -214,7 +228,10 @@ def list_words(db: Session) -> list[Word]:
         .options(selectinload(Word.translation_options))
         .order_by(Word.created_at.desc())
     )
-    return list(db.execute(stmt).scalars().all())
+    try:
+        return list(db.execute(stmt).scalars().all())
+    except OperationalError as exc:
+        raise DatabaseConnectionError("Database connection failed while listing words.") from exc
 
 
 def lookup_or_create_word(db: Session, payload: WordLookupRequest) -> Word:
