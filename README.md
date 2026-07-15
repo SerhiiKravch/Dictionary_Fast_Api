@@ -9,7 +9,7 @@ The repository is already past the empty-scaffold stage. It now contains:
 - Pydantic schemas
 - basic API/page routers
 - custom exception hierarchy and FastAPI error handlers
-- an initial service layer for dictionary lookup and OpenAI integration
+- a service layer for dictionary lookup, manual persistence, slug generation, and OpenAI integration
 
 The application is still in an early product stage, but the bootstrap infrastructure is already in place.
 
@@ -25,19 +25,17 @@ Implemented now:
 - local `docker-compose.yml` with PostgreSQL
 - package-based `app/` layout with `core`, `models`, `schemas`, `routes`, `services`, and `exceptions`
 - SQLAlchemy models for `Word` and `TranslationOption`
-- Pydantic schemas for lookup, generated payloads, create/read DTOs, and autocomplete responses
+- Pydantic schemas for lookup, generated payloads, create/read DTOs, shared success/error responses, and autocomplete responses
 - Alembic configuration with an initial migration for `words` and `translation_options`
 - FastAPI application bootstrap in `app/main.py`
-- basic routes for `/`, `/health`, `/api/health`, `/api/autocomplete`, `/lookup`, and `/word/{slug}`
-- custom exception hierarchy and centralized error handlers
-- initial service-layer structure for dictionary lookup and OpenAI calls
+- routes for `GET /`, `POST /lookup`, `GET /word/{slug}`, `GET /api/health`, `GET /api/autocomplete`, `GET /api/words`, and `POST /api/words`
+- custom exception hierarchy and centralized error handlers with structured JSON error responses
+- service-layer logic for dictionary lookup, manual word creation, list endpoints, and OpenAI calls
 - populated `.env.example`
 
 Still missing or incomplete:
 - full HTML page flow and templates
 - production-ready OpenAI prompt/response normalization
-- robust retry and fallback logic around slug generation and persistence
-- manual word creation route without OpenAI
 - automated tests
 - end-to-end Docker verification for the full flow
 
@@ -65,6 +63,7 @@ app/
     word.py
   schemas/
     __init__.py
+    common.py
     word.py
   routes/
     __init__.py
@@ -74,6 +73,9 @@ app/
     __init__.py
     dictionary.py
     openai_service.py
+  utils/
+    __init__.py
+    slug.py
   templates/
   static/
 alembic/
@@ -111,6 +113,7 @@ README.md
 `app/core/error_handlers.py` contains:
 - FastAPI exception handler registration
 - mapping of domain/integration/persistence exceptions to HTTP responses
+- unified JSON error payloads with `detail`, `error_code`, and `errors`
 
 ### Exceptions
 
@@ -155,6 +158,11 @@ These schemas already cover:
 - generated dictionary payload validation
 - read/create DTOs for persistence and API responses
 
+`app/schemas/common.py` currently defines:
+- `HealthResponse`
+- `MessageResponse`
+- `ErrorResponse`
+
 ### Routes
 
 `app/routes/pages.py` currently exposes:
@@ -162,9 +170,23 @@ These schemas already cover:
 - `POST /lookup`
 - `GET /word/{slug}`
 
+These page-style routes now also declare typed error responses in OpenAPI for:
+- validation errors
+- not found errors
+- OpenAI integration errors
+- database availability errors
+
 `app/routes/api.py` currently exposes:
 - `GET /api/health`
 - `GET /api/autocomplete`
+- `GET /api/words`
+- `POST /api/words`
+
+These API routes now declare typed `ErrorResponse` models in OpenAPI for:
+- request validation errors
+- domain validation errors
+- duplicate-word conflicts
+- application/database failures
 
 ### Services
 
@@ -173,16 +195,24 @@ These schemas already cover:
 - direction parsing
 - lookup by direction
 - lookup by slug
-- slug generation
+- slug generation via dedicated utilities
 - autocomplete query
 - creation of `Word` with `TranslationOption[]`
+- listing all saved words
 - orchestration of lookup-or-create flow
+- database connectivity error translation into app exceptions
 
 `app/services/openai_service.py` currently contains:
 - OpenAI client initialization
 - prompt generation
 - structured response parsing
 - basic API/rate-limit error translation into app exceptions
+
+`app/utils/slug.py` currently contains:
+- source-word slug normalization
+- readable base slug generation
+- short suffix generation for slug conflicts
+- reusable slug helpers shared by service-layer create flows
 
 ### Database migrations
 
@@ -227,6 +257,33 @@ The repository already includes:
 Important note:
 - the infrastructure is prepared, but the user-facing product flow is still incomplete until services, routes, templates, and tests are fully finished
 
+## API Contract
+
+Current JSON API endpoints:
+- `GET /api/health`
+- `GET /api/autocomplete?q=<prefix>`
+- `GET /api/words`
+- `POST /api/words`
+
+Current page-oriented endpoints:
+- `GET /`
+- `POST /lookup`
+- `GET /word/{slug}`
+
+Successful responses are typed with dedicated Pydantic models.
+
+Error responses are now standardized as:
+
+```json
+{
+  "detail": "Word with slug 'cat-en-uk' not found.",
+  "error_code": "word_not_found",
+  "errors": []
+}
+```
+
+The `errors` array is mainly used for request validation failures such as malformed JSON bodies or missing required fields.
+
 ## Planned Product Behavior
 
 Target application behavior:
@@ -245,16 +302,15 @@ Target application behavior:
 ### 1. Stabilize the current service layer
 
 Improve:
-- retry and fallback logic around slug creation and `IntegrityError`
 - OpenAI response normalization and validation hardening
-- manual word creation flow without OpenAI
+- richer database error coverage in services beyond `dictionary.py`
 
 ### 2. Expand the routes
 
 Add:
-- `POST /api/words` for manual word creation
-- richer lookup response behavior
-- proper error mapping for all domain cases
+- `GET /api/words/{slug}` for JSON detail lookup
+- pagination and filters for `GET /api/words`
+- Swagger `responses` coverage for every future endpoint
 
 ### 3. Add templates and page flow
 
