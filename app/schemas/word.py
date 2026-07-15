@@ -49,12 +49,11 @@ class WordCreate(BaseModel):
     source_word: str = Field(min_length=1, max_length=128)
     source_language: LanguageCode
     target_language: LanguageCode
-    slug: str = Field(min_length=1, max_length=150)
     transcription: str = Field(min_length=1, max_length=128)
     primary_translation: str = Field(min_length=1, max_length=256)
     context_sentence: str = Field(min_length=1)
     origin: str = Field(min_length=1)
-    translation_options: list[GeneratedTranslationOption] = Field(default_factory=list)
+    translation_options: list[TranslationOptionCreate] = Field(default_factory=list)
 
 
 class TranslationOptionRead(BaseModel):

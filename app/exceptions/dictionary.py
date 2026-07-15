@@ -5,6 +5,10 @@ class InvalidDirectionError(ValidationAppError):
     """Raised when translation direction is invalid."""
 
 
+class SameLanguageDirectionError(ValidationAppError):
+    """Raised when source and target languages are the same."""
+
+
 class EmptyWordError(ValidationAppError):
     """Raised when the input word is empty."""
 

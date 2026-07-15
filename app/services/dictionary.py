@@ -1,16 +1,18 @@
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.exceptions.database import DatabaseIntegrityError
 from app.exceptions.dictionary import (
     EmptyWordError,
     InvalidDirectionError,
+    SameLanguageDirectionError,
+    WordAlreadyExistsError,
     WordNotFoundError,
 )
 from app.models.enums import LanguageCode
 from app.models.word import TranslationOption, Word
-from app.schemas.word import GeneratedWordPayload, WordLookupRequest
+from app.schemas.word import GeneratedWordPayload, WordCreate, WordLookupRequest
 from app.services.openai_service import OpenAIService
 
 
@@ -21,10 +23,21 @@ def normalize_word(word: str) -> str:
     return normalized
 
 
+def validate_language_direction(
+    source_language: LanguageCode,
+    target_language: LanguageCode,
+) -> None:
+    if source_language == target_language:
+        raise SameLanguageDirectionError("Source and target languages must be different.")
+
+
 def parse_direction(direction: str) -> tuple[LanguageCode, LanguageCode]:
     try:
         source, target = direction.split(":")
-        return LanguageCode(source), LanguageCode(target)
+        source_language = LanguageCode(source)
+        target_language = LanguageCode(target)
+        validate_language_direction(source_language, target_language)
+        return source_language, target_language
     except ValueError as exc:
         raise InvalidDirectionError("Invalid direction format. Expected 'en:uk'.") from exc
 
@@ -79,8 +92,70 @@ def create_word_with_options(
     slug: str,
 ) -> Word:
     try:
+        validate_language_direction(
+            payload.source_language,
+            payload.target_language,
+        )
+
         word = Word(
             source_word=normalize_word(payload.source_word),
+            source_language=payload.source_language.value,
+            target_language=payload.target_language.value,
+            slug=slug,
+            transcription=payload.transcription,
+            primary_translation=payload.primary_translation,
+            context_sentence=payload.context_sentence,
+            origin=payload.origin,
+        )
+        db.add(word)
+        db.flush()
+
+        for option in payload.translation_options:
+            db.add(
+                TranslationOption(
+                    word_id=word.id,
+                    text=option.text,
+                    part_of_speech=option.part_of_speech.value,
+                    priority=option.priority,
+                    usage_note=option.usage_note,
+                )
+            )
+
+        db.commit()
+        db.refresh(word)
+        return word
+
+    except IntegrityError as exc:
+        db.rollback()
+        raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
+
+
+def create_word_manually(db: Session, payload: WordCreate) -> Word:
+    normalized_word = normalize_word(payload.source_word)
+    validate_language_direction(
+        payload.source_language,
+        payload.target_language,
+    )
+
+    existing_word = get_existing_word(
+        db=db,
+        word=normalized_word,
+        source_language=payload.source_language,
+        target_language=payload.target_language,
+    )
+    if existing_word is not None:
+        raise WordAlreadyExistsError("Word already exists for the selected translation direction.")
+
+    slug = generate_unique_slug(
+        db=db,
+        source_word=normalized_word,
+        source_language=payload.source_language,
+        target_language=payload.target_language,
+    )
+
+    try:
+        word = Word(
+            source_word=normalized_word,
             source_language=payload.source_language.value,
             target_language=payload.target_language.value,
             slug=slug,
@@ -124,6 +199,15 @@ def autocomplete_words(db: Session, query: str) -> list[str]:
         .limit(10)
     )
 
+    return list(db.execute(stmt).scalars().all())
+
+
+def list_words(db: Session) -> list[Word]:
+    stmt = (
+        select(Word)
+        .options(selectinload(Word.translation_options))
+        .order_by(Word.created_at.desc())
+    )
     return list(db.execute(stmt).scalars().all())
 
 

@@ -2,9 +2,20 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.exceptions import AppError, IntegrationAppError, PersistenceAppError, ValidationAppError
+from app.exceptions.dictionary import WordAlreadyExistsError
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(WordAlreadyExistsError)
+    async def handle_word_exists_error(
+        request: Request,
+        exc: WordAlreadyExistsError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": str(exc) or "Word already exists"},
+        )
+
     @app.exception_handler(ValidationAppError)
     async def handle_validation_error(request: Request, exc: ValidationAppError) -> JSONResponse:
         return JSONResponse(
