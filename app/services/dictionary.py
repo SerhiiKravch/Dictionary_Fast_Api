@@ -14,6 +14,7 @@ from app.models.enums import LanguageCode
 from app.models.word import TranslationOption, Word
 from app.schemas.word import GeneratedWordPayload, WordCreate, WordLookupRequest
 from app.services.openai_service import OpenAIService
+from app.utils.slug import build_base_slug, build_slug_with_suffix, generate_slug_suffix
 
 
 def normalize_word(word: str) -> str:
@@ -66,68 +67,101 @@ def get_word_by_slug(db: Session, slug: str) -> Word:
     return word
 
 
-def generate_unique_slug(
+def get_constraint_name(exc: IntegrityError) -> str | None:
+    diag = getattr(getattr(exc, "orig", None), "diag", None)
+    return getattr(diag, "constraint_name", None)
+
+
+def persist_word_with_options(
     db: Session,
+    *,
     source_word: str,
     source_language: LanguageCode,
     target_language: LanguageCode,
-) -> str:
-    base_slug = f"{normalize_word(source_word)}-{source_language.value}-{target_language.value}"
-    slug = base_slug
-    counter = 1
+    transcription: str,
+    primary_translation: str,
+    context_sentence: str,
+    origin: str,
+    translation_options: list,
+) -> Word:
+    base_slug = build_base_slug(
+        source_word=source_word,
+        source_language=source_language,
+        target_language=target_language,
+    )
 
-    while True:
-        stmt = select(Word).where(Word.slug == slug)
-        existing = db.execute(stmt).scalar_one_or_none()
-        if existing is None:
-            return slug
+    for attempt in range(5):
+        slug = build_slug_with_suffix(
+            base_slug,
+            None if attempt == 0 else generate_slug_suffix(),
+        )
 
-        counter += 1
-        slug = f"{base_slug}-{counter}"
+        try:
+            word = Word(
+                source_word=normalize_word(source_word),
+                source_language=source_language.value,
+                target_language=target_language.value,
+                slug=slug,
+                transcription=transcription,
+                primary_translation=primary_translation,
+                context_sentence=context_sentence,
+                origin=origin,
+            )
+            db.add(word)
+            db.flush()
+
+            for option in translation_options:
+                db.add(
+                    TranslationOption(
+                        word_id=word.id,
+                        text=option.text,
+                        part_of_speech=option.part_of_speech.value,
+                        priority=option.priority,
+                        usage_note=option.usage_note,
+                    )
+                )
+
+            db.commit()
+            db.refresh(word)
+            return word
+
+        except IntegrityError as exc:
+            db.rollback()
+            constraint_name = get_constraint_name(exc)
+
+            if constraint_name == "uq_word_direction":
+                raise WordAlreadyExistsError(
+                    "Word already exists for the selected translation direction."
+                ) from exc
+
+            if constraint_name == "uq_word_slug" and attempt < 4:
+                continue
+
+            raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
+
+    raise DatabaseIntegrityError("Failed to generate a unique slug for the word.")
 
 
 def create_word_with_options(
     db: Session,
     payload: GeneratedWordPayload,
-    slug: str,
 ) -> Word:
-    try:
-        validate_language_direction(
-            payload.source_language,
-            payload.target_language,
-        )
+    validate_language_direction(
+        payload.source_language,
+        payload.target_language,
+    )
 
-        word = Word(
-            source_word=normalize_word(payload.source_word),
-            source_language=payload.source_language.value,
-            target_language=payload.target_language.value,
-            slug=slug,
-            transcription=payload.transcription,
-            primary_translation=payload.primary_translation,
-            context_sentence=payload.context_sentence,
-            origin=payload.origin,
-        )
-        db.add(word)
-        db.flush()
-
-        for option in payload.translation_options:
-            db.add(
-                TranslationOption(
-                    word_id=word.id,
-                    text=option.text,
-                    part_of_speech=option.part_of_speech.value,
-                    priority=option.priority,
-                    usage_note=option.usage_note,
-                )
-            )
-
-        db.commit()
-        db.refresh(word)
-        return word
-
-    except IntegrityError as exc:
-        db.rollback()
-        raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
+    return persist_word_with_options(
+        db=db,
+        source_word=payload.source_word,
+        source_language=payload.source_language,
+        target_language=payload.target_language,
+        transcription=payload.transcription,
+        primary_translation=payload.primary_translation,
+        context_sentence=payload.context_sentence,
+        origin=payload.origin,
+        translation_options=payload.translation_options,
+    )
 
 
 def create_word_manually(db: Session, payload: WordCreate) -> Word:
@@ -146,45 +180,17 @@ def create_word_manually(db: Session, payload: WordCreate) -> Word:
     if existing_word is not None:
         raise WordAlreadyExistsError("Word already exists for the selected translation direction.")
 
-    slug = generate_unique_slug(
+    return persist_word_with_options(
         db=db,
         source_word=normalized_word,
         source_language=payload.source_language,
         target_language=payload.target_language,
+        transcription=payload.transcription,
+        primary_translation=payload.primary_translation,
+        context_sentence=payload.context_sentence,
+        origin=payload.origin,
+        translation_options=payload.translation_options,
     )
-
-    try:
-        word = Word(
-            source_word=normalized_word,
-            source_language=payload.source_language.value,
-            target_language=payload.target_language.value,
-            slug=slug,
-            transcription=payload.transcription,
-            primary_translation=payload.primary_translation,
-            context_sentence=payload.context_sentence,
-            origin=payload.origin,
-        )
-        db.add(word)
-        db.flush()
-
-        for option in payload.translation_options:
-            db.add(
-                TranslationOption(
-                    word_id=word.id,
-                    text=option.text,
-                    part_of_speech=option.part_of_speech.value,
-                    priority=option.priority,
-                    usage_note=option.usage_note,
-                )
-            )
-
-        db.commit()
-        db.refresh(word)
-        return word
-
-    except IntegrityError as exc:
-        db.rollback()
-        raise DatabaseIntegrityError("Failed to save word due to DB constraint.") from exc
 
 
 def autocomplete_words(db: Session, query: str) -> list[str]:
@@ -231,15 +237,7 @@ def lookup_or_create_word(db: Session, payload: WordLookupRequest) -> Word:
         target_language=target_language,
     )
 
-    slug = generate_unique_slug(
-        db=db,
-        source_word=generated_payload.source_word,
-        source_language=generated_payload.source_language,
-        target_language=generated_payload.target_language,
-    )
-
     return create_word_with_options(
         db=db,
         payload=generated_payload,
-        slug=slug,
     )
