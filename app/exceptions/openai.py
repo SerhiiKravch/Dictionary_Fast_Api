@@ -13,5 +13,9 @@ class OpenAIResponseFormatError(OpenAIServiceError):
     """Raised when the model response cannot be parsed or validated."""
 
 
+class OpenAIConfigurationError(OpenAIServiceError):
+    """Raised when OpenAI client configuration is missing or invalid."""
+
+
 class OpenAIUnavailableError(OpenAIServiceError):
     """Raised when the OpenAI API is temporarily unavailable."""

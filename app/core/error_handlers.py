@@ -6,6 +6,7 @@ from app.exceptions import AppError, IntegrationAppError, PersistenceAppError, V
 from app.exceptions.database import DatabaseConnectionError
 from app.exceptions.dictionary import WordAlreadyExistsError, WordNotFoundError
 from app.exceptions.openai import (
+    OpenAIConfigurationError,
     OpenAIRateLimitError,
     OpenAIResponseFormatError,
     OpenAIUnavailableError,
@@ -73,6 +74,17 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=429,
             detail=str(exc) or "OpenAI rate limit exceeded.",
             error_code="openai_rate_limit",
+        )
+
+    @app.exception_handler(OpenAIConfigurationError)
+    async def handle_openai_configuration_error(
+        request: Request,
+        exc: OpenAIConfigurationError,
+    ) -> JSONResponse:
+        return build_error_response(
+            status_code=503,
+            detail=str(exc) or "OpenAI client is not configured correctly.",
+            error_code="openai_configuration_error",
         )
 
     @app.exception_handler(OpenAIUnavailableError)

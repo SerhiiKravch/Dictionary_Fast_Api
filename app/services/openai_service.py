@@ -1,7 +1,8 @@
-from openai import APIError, OpenAI, RateLimitError
+from openai import APIError, OpenAI, OpenAIError, RateLimitError
 
 from app.core.config import get_settings
 from app.exceptions.openai import (
+    OpenAIConfigurationError,
     OpenAIRateLimitError,
     OpenAIResponseFormatError,
     OpenAIUnavailableError,
@@ -13,7 +14,15 @@ from app.schemas.word import GeneratedWordPayload
 class OpenAIService:
     def __init__(self) -> None:
         settings = get_settings()
-        self.client = OpenAI(api_key=settings.openai_api_key)
+        api_key = settings.openai_api_key.strip()
+        if not api_key:
+            raise OpenAIConfigurationError("OpenAI API key is not configured.")
+
+        try:
+            self.client = OpenAI(api_key=api_key)
+        except OpenAIError as exc:
+            raise OpenAIConfigurationError("OpenAI client configuration is invalid.") from exc
+
         self.model = settings.openai_model
 
     def build_prompt(
@@ -46,6 +55,8 @@ class OpenAIService:
             raise OpenAIRateLimitError("OpenAI rate limit exceeded.") from exc
         except APIError as exc:
             raise OpenAIUnavailableError("OpenAI API request failed.") from exc
+        except OpenAIError as exc:
+            raise OpenAIUnavailableError("OpenAI client request failed.") from exc
 
         if response.output_parsed is None:
             raise OpenAIResponseFormatError("OpenAI returned an invalid structured response.")

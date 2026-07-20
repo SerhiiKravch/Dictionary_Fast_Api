@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, selectinload
 
@@ -71,7 +71,7 @@ def get_existing_word(
 
 
 def get_word_by_slug(db: Session, slug: str) -> Word:
-    stmt = select(Word).where(Word.slug == slug)
+    stmt = select(Word).options(selectinload(Word.translation_options)).where(Word.slug == slug)
     try:
         word = db.execute(stmt).scalar_one_or_none()
     except OperationalError as exc:
@@ -241,19 +241,55 @@ def autocomplete_words(db: Session, query: str) -> list[str]:
         raise DatabaseConnectionError("Database connection failed during autocomplete.") from exc
 
 
+def apply_word_filters(
+    stmt: Select[tuple[Word] | tuple[int]],
+    *,
+    source_language: LanguageCode | None = None,
+    target_language: LanguageCode | None = None,
+    origin: WordOrigin | None = None,
+    search: str = "",
+) -> Select[tuple[Word] | tuple[int]]:
+    normalized_search = search.strip().lower()
+
+    if source_language is not None:
+        stmt = stmt.where(Word.source_language == source_language.value)
+    if target_language is not None:
+        stmt = stmt.where(Word.target_language == target_language.value)
+    if origin is not None:
+        stmt = stmt.where(Word.origin == origin.value)
+    if normalized_search:
+        stmt = stmt.where(Word.source_word.ilike(f"%{normalized_search}%"))
+
+    return stmt
+
+
 def paginate_words(
     db: Session,
     limit: int,
     offset: int,
+    *,
+    source_language: LanguageCode | None = None,
+    target_language: LanguageCode | None = None,
+    origin: WordOrigin | None = None,
+    search: str = "",
 ) -> tuple[list[Word], int]:
-    items_stmt = (
-        select(Word)
-        .options(selectinload(Word.translation_options))
-        .order_by(Word.created_at.desc(), Word.id.desc())
-        .limit(limit)
-        .offset(offset)
+    items_stmt = apply_word_filters(
+        select(Word).options(selectinload(Word.translation_options)),
+        source_language=source_language,
+        target_language=target_language,
+        origin=origin,
+        search=search,
     )
-    total_stmt = select(func.count(Word.id))
+    items_stmt = (
+        items_stmt.order_by(Word.created_at.desc(), Word.id.desc()).limit(limit).offset(offset)
+    )
+    total_stmt = apply_word_filters(
+        select(func.count(Word.id)),
+        source_language=source_language,
+        target_language=target_language,
+        origin=origin,
+        search=search,
+    )
 
     try:
         items = list(db.execute(items_stmt).scalars().all())
