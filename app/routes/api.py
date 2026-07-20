@@ -17,7 +17,7 @@ from app.services.dictionary import autocomplete_words, create_word_manually, li
 router = APIRouter(prefix="/api", tags=["api"])
 
 DbSession = Annotated[Session, Depends(get_db)]
-AutocompleteQuery = Annotated[str, Query(min_length=1, max_length=128)]
+AutocompleteQuery = Annotated[str, Query(max_length=128)]
 
 
 @router.get(
