@@ -6,8 +6,7 @@ from app.exceptions.dictionary import (
     SameLanguageDirectionError,
     WordAlreadyExistsError,
 )
-from app.models.enums import LanguageCode, PartOfSpeech
-from app.schemas.word import TranslationOptionCreate, WordCreate
+from app.models.enums import LanguageCode
 from app.services import dictionary
 from app.services.dictionary import (
     create_word_manually,
@@ -15,6 +14,7 @@ from app.services.dictionary import (
     parse_direction,
     validate_language_direction,
 )
+from tests.factories import make_translation_option_create, make_word_create
 
 
 def test_normalize_word_strips_and_lowercase() -> None:
@@ -52,7 +52,7 @@ def test_parse_direction_rejects_same_languages() -> None:
 
 
 def test_create_word_manually_persists_word_and_options(db_session) -> None:
-    payload = WordCreate(
+    payload = make_word_create(
         source_word="Apple",
         source_language=LanguageCode.ENGLISH,
         target_language=LanguageCode.UKRAINIAN,
@@ -61,9 +61,8 @@ def test_create_word_manually_persists_word_and_options(db_session) -> None:
         context_sentence="I ate an apple.",
         origin="manual",
         translation_options=[
-            TranslationOptionCreate(
+            make_translation_option_create(
                 text="яблуко",
-                part_of_speech=PartOfSpeech.NOUN,
                 priority=1,
                 usage_note="basic",
             )
@@ -79,7 +78,7 @@ def test_create_word_manually_persists_word_and_options(db_session) -> None:
 
 
 def test_create_word_manually_rejects_duplicate_direction(db_session) -> None:
-    payload = WordCreate(
+    payload = make_word_create(
         source_word="Apple",
         source_language=LanguageCode.ENGLISH,
         target_language=LanguageCode.UKRAINIAN,
@@ -88,9 +87,8 @@ def test_create_word_manually_rejects_duplicate_direction(db_session) -> None:
         context_sentence="I ate an apple.",
         origin="manual",
         translation_options=[
-            TranslationOptionCreate(
+            make_translation_option_create(
                 text="яблуко",
-                part_of_speech=PartOfSpeech.NOUN,
                 priority=1,
                 usage_note="basic",
             )
@@ -106,7 +104,7 @@ def test_create_word_manually_rejects_duplicate_direction(db_session) -> None:
 def test_create_word_manually_adds_suffix_on_slug_conflict(db_session, monkeypatch) -> None:
     monkeypatch.setattr(dictionary, "build_base_slug", lambda *args, **kwargs: "fixed-slug")
 
-    first = WordCreate(
+    first = make_word_create(
         source_word="apple",
         source_language=LanguageCode.ENGLISH,
         target_language=LanguageCode.UKRAINIAN,
@@ -116,7 +114,7 @@ def test_create_word_manually_adds_suffix_on_slug_conflict(db_session, monkeypat
         origin="manual",
         translation_options=[],
     )
-    second = WordCreate(
+    second = make_word_create(
         source_word="banana",
         source_language=LanguageCode.ENGLISH,
         target_language=LanguageCode.UKRAINIAN,

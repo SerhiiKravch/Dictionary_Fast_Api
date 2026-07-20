@@ -1,3 +1,6 @@
+from tests.factories import make_word_create_payload
+
+
 def test_get_api_health(client) -> None:
     response = client.get("/api/health")
 
@@ -13,16 +16,7 @@ def test_get_api_words_returns_list(client) -> None:
 
 
 def test_post_api_words_creates_word(client) -> None:
-    payload = {
-        "source_word": "apple",
-        "source_language": "en",
-        "target_language": "uk",
-        "transcription": "[ap-l]",
-        "primary_translation": "яблуко",
-        "context_sentence": "I ate an apple.",
-        "origin": "manual",
-        "translation_options": [],
-    }
+    payload = make_word_create_payload()
 
     response = client.post("/api/words", json=payload)
 
@@ -33,16 +27,7 @@ def test_post_api_words_creates_word(client) -> None:
 
 
 def test_post_api_words_returns_409_for_duplicate(client) -> None:
-    payload = {
-        "source_word": "apple",
-        "source_language": "en",
-        "target_language": "uk",
-        "transcription": "[ap-l]",
-        "primary_translation": "яблуко",
-        "context_sentence": "I ate an apple.",
-        "origin": "manual",
-        "translation_options": [],
-    }
+    payload = make_word_create_payload()
     client.post("/api/words", json=payload)
 
     response = client.post("/api/words", json=payload)

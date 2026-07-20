@@ -31,12 +31,12 @@ Implemented now:
 - routes for `GET /`, `POST /lookup`, `GET /word/{slug}`, `GET /api/health`, `GET /api/autocomplete`, `GET /api/words`, and `POST /api/words`
 - custom exception hierarchy and centralized error handlers with structured JSON error responses
 - service-layer logic for dictionary lookup, manual word creation, list endpoints, and OpenAI calls
+- automated unit and API tests for service logic, lookup flow, and core endpoints
 - populated `.env.example`
 
 Still missing or incomplete:
 - full HTML page flow and templates
 - production-ready OpenAI prompt/response normalization
-- automated tests
 - end-to-end Docker verification for the full flow
 
 ## Repository Layout
@@ -84,6 +84,12 @@ alembic/
   versions/
 alembic.ini
 tests/
+  factories.py
+  fakes.py
+  conftest.py
+  test_api_endpoints.py
+  test_dictionary_service.py
+  test_lookup_or_create_word.py
 Dockerfile
 docker-compose.yml
 pyproject.toml
@@ -188,6 +194,9 @@ These API routes now declare typed `ErrorResponse` models in OpenAPI for:
 - duplicate-word conflicts
 - application/database failures
 
+Shared OpenAPI error-response maps are now centralized in:
+- `app/routes/responses.py`
+
 ### Services
 
 `app/services/dictionary.py` currently contains:
@@ -201,6 +210,7 @@ These API routes now declare typed `ErrorResponse` models in OpenAPI for:
 - listing all saved words
 - orchestration of lookup-or-create flow
 - database connectivity error translation into app exceptions
+- typed translation option input handling for both manual and generated create flows
 
 `app/services/openai_service.py` currently contains:
 - OpenAI client initialization
@@ -213,6 +223,21 @@ These API routes now declare typed `ErrorResponse` models in OpenAPI for:
 - readable base slug generation
 - short suffix generation for slug conflicts
 - reusable slug helpers shared by service-layer create flows
+
+### Tests
+
+The current test suite covers:
+- normalization and direction parsing
+- manual word creation
+- duplicate-word protection
+- slug conflict retry behavior
+- lookup-or-create flow with OpenAI mocked out
+- API health/list/create/not-found/validation scenarios
+
+Test helpers are organized as:
+- `tests/conftest.py` for DB and client fixtures
+- `tests/factories.py` for reusable payload builders
+- `tests/fakes.py` for fake OpenAI service implementations
 
 ### Database migrations
 

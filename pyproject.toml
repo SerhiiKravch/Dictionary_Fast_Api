@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "dictionary-fastapi"
 version = "0.1.0"
@@ -39,9 +43,11 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.coverage.run]
 source = ["app"]

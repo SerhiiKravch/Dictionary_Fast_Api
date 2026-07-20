@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, selectinload
@@ -12,9 +14,17 @@ from app.exceptions.dictionary import (
 )
 from app.models.enums import LanguageCode
 from app.models.word import TranslationOption, Word
-from app.schemas.word import GeneratedWordPayload, WordCreate, WordLookupRequest
+from app.schemas.word import (
+    GeneratedTranslationOption,
+    GeneratedWordPayload,
+    TranslationOptionCreate,
+    WordCreate,
+    WordLookupRequest,
+)
 from app.services.openai_service import OpenAIService
 from app.utils.slug import build_base_slug, build_slug_with_suffix, generate_slug_suffix
+
+TranslationOptionInput = GeneratedTranslationOption | TranslationOptionCreate
 
 
 def normalize_word(word: str) -> str:
@@ -97,7 +107,7 @@ def persist_word_with_options(
     primary_translation: str,
     context_sentence: str,
     origin: str,
-    translation_options: list,
+    translation_options: Sequence[TranslationOptionInput],
 ) -> Word:
     base_slug = build_base_slug(
         source_word=source_word,

@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.schemas.common import ErrorResponse, MessageResponse
+from app.routes.responses import (
+    APPLICATION_ERROR_RESPONSES,
+    COMMON_PAGE_ERROR_RESPONSES,
+    CONFLICT_ERROR_RESPONSES,
+)
+from app.schemas.common import MessageResponse
 from app.schemas.word import WordLookupRequest, WordRead
 from app.services.dictionary import get_word_by_slug, lookup_or_create_word
 
@@ -12,21 +17,12 @@ router = APIRouter(tags=["pages"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 
-PAGE_ERROR_RESPONSES = {
-    400: {"model": ErrorResponse, "description": "Domain validation error"},
-    404: {"model": ErrorResponse, "description": "Word not found"},
-    422: {"model": ErrorResponse, "description": "Request validation error"},
-    500: {"model": ErrorResponse, "description": "Application error"},
-    502: {"model": ErrorResponse, "description": "OpenAI integration error"},
-    503: {"model": ErrorResponse, "description": "Database unavailable"},
-}
-
 
 @router.get(
     "/",
     response_model=MessageResponse,
     status_code=200,
-    responses={500: {"model": ErrorResponse, "description": "Application error"}},
+    responses=APPLICATION_ERROR_RESPONSES,
 )
 def index_page() -> MessageResponse:
     return MessageResponse(message="Dictionary FastAPI is running")
@@ -37,8 +33,8 @@ def index_page() -> MessageResponse:
     response_model=WordRead,
     status_code=200,
     responses={
-        **PAGE_ERROR_RESPONSES,
-        409: {"model": ErrorResponse, "description": "Word already exists"},
+        **COMMON_PAGE_ERROR_RESPONSES,
+        **CONFLICT_ERROR_RESPONSES,
     },
 )
 def lookup_word_page(payload: WordLookupRequest, db: DbSession) -> WordRead:
@@ -50,7 +46,7 @@ def lookup_word_page(payload: WordLookupRequest, db: DbSession) -> WordRead:
     "/word/{slug}",
     response_model=WordRead,
     status_code=200,
-    responses=PAGE_ERROR_RESPONSES,
+    responses=COMMON_PAGE_ERROR_RESPONSES,
 )
 def get_word_page(slug: str, db: DbSession) -> WordRead:
     word = get_word_by_slug(db=db, slug=slug)

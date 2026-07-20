@@ -1,39 +1,9 @@
-from app.models.enums import LanguageCode, PartOfSpeech
-from app.schemas.word import (
-    GeneratedTranslationOption,
-    GeneratedWordPayload,
-    TranslationOptionCreate,
-    WordCreate,
-    WordLookupRequest,
-)
+from app.models.enums import LanguageCode
+from app.schemas.word import WordLookupRequest
 from app.services import dictionary
 from app.services.dictionary import create_word_manually, lookup_or_create_word
-
-
-class FakeOpenAIService:
-    def generate_word_payload(self, word, source_language, target_language):
-        return GeneratedWordPayload(
-            source_word=word,
-            source_language=source_language,
-            target_language=target_language,
-            transcription="[test]",
-            primary_translation="тест",
-            context_sentence="test sentence",
-            origin="openai",
-            translation_options=[
-                GeneratedTranslationOption(
-                    text="тест",
-                    part_of_speech=PartOfSpeech.NOUN,
-                    priority=1,
-                    usage_note="",
-                )
-            ],
-        )
-
-
-class FailingOpenAIService:
-    def __init__(self) -> None:
-        raise AssertionError("OpenAIService should not be called when word already exists")
+from tests.factories import make_word_create
+from tests.fakes import FailingOpenAIService, FakeOpenAIService
 
 
 def test_lookup_or_create_word_creates_when_missing(db_session, monkeypatch) -> None:
@@ -50,7 +20,7 @@ def test_lookup_or_create_word_returns_existing_without_openai(
     db_session,
     monkeypatch,
 ) -> None:
-    existing_payload = WordCreate(
+    existing_payload = make_word_create(
         source_word="apple",
         source_language=LanguageCode.ENGLISH,
         target_language=LanguageCode.UKRAINIAN,
@@ -58,13 +28,6 @@ def test_lookup_or_create_word_returns_existing_without_openai(
         primary_translation="яблуко",
         context_sentence="I ate an apple.",
         origin="manual",
-        translation_options=[
-            TranslationOptionCreate(
-                text="яблуко",
-                priority=1,
-                usage_note="",
-            )
-        ],
     )
 
     created_word = create_word_manually(db=db_session, payload=existing_payload)
