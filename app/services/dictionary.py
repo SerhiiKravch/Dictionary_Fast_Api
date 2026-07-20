@@ -75,7 +75,16 @@ def get_word_by_slug(db: Session, slug: str) -> Word:
 
 def get_constraint_name(exc: IntegrityError) -> str | None:
     diag = getattr(getattr(exc, "orig", None), "diag", None)
-    return getattr(diag, "constraint_name", None)
+    constraint_name = getattr(diag, "constraint_name", None)
+    if constraint_name is not None:
+        return constraint_name
+
+    message = str(getattr(exc, "orig", exc)).lower()
+    if "words.slug" in message:
+        return "uq_word_slug"
+    if "words.source_word" in message:
+        return "uq_word_direction"
+    return None
 
 
 def persist_word_with_options(
