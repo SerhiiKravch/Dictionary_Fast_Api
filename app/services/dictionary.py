@@ -12,7 +12,7 @@ from app.exceptions.dictionary import (
     WordAlreadyExistsError,
     WordNotFoundError,
 )
-from app.models.enums import LanguageCode
+from app.models.enums import LanguageCode, WordOrigin
 from app.models.word import TranslationOption, Word
 from app.schemas.word import (
     GeneratedTranslationOption,
@@ -106,7 +106,7 @@ def persist_word_with_options(
     transcription: str,
     primary_translation: str,
     context_sentence: str,
-    origin: str,
+    origin: WordOrigin,
     translation_options: Sequence[TranslationOptionInput],
 ) -> Word:
     base_slug = build_base_slug(
@@ -130,7 +130,7 @@ def persist_word_with_options(
                 transcription=transcription,
                 primary_translation=primary_translation,
                 context_sentence=context_sentence,
-                origin=origin,
+                origin=origin.value,
             )
             db.add(word)
             db.flush()

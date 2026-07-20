@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models.enums import PartOfSpeech
+from app.models.enums import PartOfSpeech, WordOrigin
 from app.schemas.word import GeneratedTranslationOption, GeneratedWordPayload
 
 
@@ -13,7 +13,7 @@ class FakeOpenAIService:
             transcription="[test]",
             primary_translation="тест",
             context_sentence="test sentence",
-            origin="openai",
+            origin=WordOrigin.OPENAI,
             translation_options=[
                 GeneratedTranslationOption(
                     text="тест",

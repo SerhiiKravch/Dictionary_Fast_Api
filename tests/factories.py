@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models.enums import LanguageCode, PartOfSpeech
+from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
 from app.schemas.word import TranslationOptionCreate, WordCreate
 
 
@@ -27,7 +27,7 @@ def make_word_create(
     transcription: str = "[ap-l]",
     primary_translation: str = "яблуко",
     context_sentence: str = "I ate an apple.",
-    origin: str = "manual",
+    origin: WordOrigin = WordOrigin.MANUAL,
     translation_options: list[TranslationOptionCreate] | None = None,
 ) -> WordCreate:
     return WordCreate(

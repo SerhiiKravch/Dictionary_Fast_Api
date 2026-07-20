@@ -6,6 +6,12 @@ class LanguageCode(StrEnum):
     UKRAINIAN = "uk"
 
 
+class WordOrigin(StrEnum):
+    MANUAL = "manual"
+    OPENAI = "openai"
+    IMPORTED = "imported"
+
+
 class PartOfSpeech(StrEnum):
     NOUN = "noun"
     VERB = "verb"

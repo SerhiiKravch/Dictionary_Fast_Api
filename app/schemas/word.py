@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import LanguageCode, PartOfSpeech
+from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
 
 
 class WordLookupRequest(BaseModel):
@@ -34,7 +34,7 @@ class GeneratedWordPayload(BaseModel):
     transcription: str = Field(min_length=1, max_length=128)
     primary_translation: str = Field(min_length=1, max_length=256)
     context_sentence: str = Field(min_length=1)
-    origin: str = Field(min_length=1)
+    origin: WordOrigin = WordOrigin.OPENAI
     translation_options: list[GeneratedTranslationOption] = Field(default_factory=list)
 
 
@@ -52,7 +52,7 @@ class WordCreate(BaseModel):
     transcription: str = Field(min_length=1, max_length=128)
     primary_translation: str = Field(min_length=1, max_length=256)
     context_sentence: str = Field(min_length=1)
-    origin: str = Field(min_length=1)
+    origin: WordOrigin = WordOrigin.MANUAL
     translation_options: list[TranslationOptionCreate] = Field(default_factory=list)
 
 
@@ -75,8 +75,9 @@ class WordRead(BaseModel):
     transcription: str
     primary_translation: str
     context_sentence: str
-    origin: str
+    origin: WordOrigin
     created_at: datetime
+    updated_at: datetime
     translation_options: list[TranslationOptionRead]
 
     model_config = ConfigDict(from_attributes=True)
