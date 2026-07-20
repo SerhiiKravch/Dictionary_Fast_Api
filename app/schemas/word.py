@@ -81,3 +81,10 @@ class WordRead(BaseModel):
     translation_options: list[TranslationOptionRead]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WordListResponse(BaseModel):
+    items: list[WordRead]
+    total: int
+    limit: int
+    offset: int

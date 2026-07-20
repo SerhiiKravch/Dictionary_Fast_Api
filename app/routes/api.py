@@ -11,13 +11,15 @@ from app.routes.responses import (
     DOMAIN_ERROR_RESPONSES,
 )
 from app.schemas.common import HealthResponse
-from app.schemas.word import AutocompleteResponse, WordCreate, WordRead
-from app.services.dictionary import autocomplete_words, create_word_manually, list_words
+from app.schemas.word import AutocompleteResponse, WordCreate, WordListResponse, WordRead
+from app.services.dictionary import autocomplete_words, create_word_manually, paginate_words
 
 router = APIRouter(prefix="/api", tags=["api"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 AutocompleteQuery = Annotated[str, Query(max_length=128)]
+PaginationLimit = Annotated[int, Query(ge=1, le=100)]
+PaginationOffset = Annotated[int, Query(ge=0)]
 
 
 @router.get(
@@ -46,13 +48,22 @@ def autocomplete_endpoint(
 
 @router.get(
     "/words",
-    response_model=list[WordRead],
+    response_model=WordListResponse,
     status_code=200,
     responses=COMMON_API_ERROR_RESPONSES,
 )
-def list_words_endpoint(db: DbSession) -> list[WordRead]:
-    words = list_words(db=db)
-    return [WordRead.model_validate(word) for word in words]
+def list_words_endpoint(
+    db: DbSession,
+    limit: PaginationLimit = 20,
+    offset: PaginationOffset = 0,
+) -> WordListResponse:
+    items, total = paginate_words(db=db, limit=limit, offset=offset)
+    return WordListResponse(
+        items=[WordRead.model_validate(word) for word in items],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post(

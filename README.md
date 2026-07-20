@@ -9,7 +9,7 @@ The repository is already past the empty-scaffold stage. It now contains:
 - Pydantic schemas
 - basic API/page routers
 - custom exception hierarchy and FastAPI error handlers
-- a service layer for dictionary lookup, manual persistence, slug generation, and OpenAI integration
+- a service layer for dictionary lookup, manual persistence, pagination, slug generation, and OpenAI integration
 
 The application is still in an early product stage, but the bootstrap infrastructure is already in place.
 
@@ -25,13 +25,13 @@ Implemented now:
 - local `docker-compose.yml` with PostgreSQL
 - package-based `app/` layout with `core`, `models`, `schemas`, `routes`, `services`, and `exceptions`
 - SQLAlchemy models for `Word` and `TranslationOption`
-- Pydantic schemas for lookup, generated payloads, create/read DTOs, shared success/error responses, and autocomplete responses
+- Pydantic schemas for lookup, generated payloads, create/read DTOs, paginated list responses, and shared success/error responses
 - Alembic configuration with an initial migration for `words` and `translation_options`
 - FastAPI application bootstrap in `app/main.py`
 - routes for `GET /`, `POST /lookup`, `GET /word/{slug}`, `GET /api/health`, `GET /api/autocomplete`, `GET /api/words`, and `POST /api/words`
-- custom exception hierarchy and centralized error handlers with structured JSON error responses
-- service-layer logic for dictionary lookup, manual word creation, list endpoints, and OpenAI calls
-- automated unit and API tests for service logic, lookup flow, and core endpoints
+- custom exception hierarchy, centralized error handlers, and reusable OpenAPI error-response definitions with examples
+- service-layer logic for dictionary lookup, manual word creation, autocomplete, paginated list endpoints, and OpenAI calls
+- automated unit and API tests for service logic, lookup flow, pagination, autocomplete, and slug helpers
 - populated `.env.example`
 
 Still missing or incomplete:
@@ -133,6 +133,7 @@ README.md
 
 `app/models/enums.py` defines:
 - `LanguageCode`
+- `WordOrigin`
 - `PartOfSpeech`
 
 `app/models/word.py` defines:
@@ -142,8 +143,11 @@ README.md
 The models already include:
 - unique word-per-direction constraint
 - unique slug constraint
+- database-level language-difference check constraint
+- database-level origin check constraint
 - one-to-many relationship from `Word` to `TranslationOption`
-- timestamps and ordering basics
+- `created_at` and `updated_at` timestamps
+- deterministic translation-option ordering by priority
 
 ### Schemas
 
@@ -157,12 +161,14 @@ The models already include:
 - `WordCreate`
 - `TranslationOptionRead`
 - `WordRead`
+- `WordListResponse`
 
 These schemas already cover:
 - input validation for word lookup
 - validation of generated translation options
 - generated dictionary payload validation
 - read/create DTOs for persistence and API responses
+- paginated API responses for saved-word collections
 
 `app/schemas/common.py` currently defines:
 - `HealthResponse`
@@ -193,9 +199,11 @@ These API routes now declare typed `ErrorResponse` models in OpenAPI for:
 - domain validation errors
 - duplicate-word conflicts
 - application/database failures
+- rate-limit and integration failures where applicable
 
 Shared OpenAPI error-response maps are now centralized in:
 - `app/routes/responses.py`
+- these maps also include concrete JSON examples for Swagger / OpenAPI
 
 ### Services
 
@@ -207,7 +215,7 @@ Shared OpenAPI error-response maps are now centralized in:
 - slug generation via dedicated utilities
 - autocomplete query
 - creation of `Word` with `TranslationOption[]`
-- listing all saved words
+- paginated listing of saved words
 - orchestration of lookup-or-create flow
 - database connectivity error translation into app exceptions
 - typed translation option input handling for both manual and generated create flows
@@ -233,6 +241,8 @@ The current test suite covers:
 - slug conflict retry behavior
 - lookup-or-create flow with OpenAI mocked out
 - API health/list/create/not-found/validation scenarios
+- autocomplete behavior, including empty-query handling and result limiting
+- reusable slug helper behavior
 
 Test helpers are organized as:
 - `tests/conftest.py` for DB and client fixtures
@@ -287,7 +297,7 @@ Important note:
 Current JSON API endpoints:
 - `GET /api/health`
 - `GET /api/autocomplete?q=<prefix>`
-- `GET /api/words`
+- `GET /api/words?limit=<n>&offset=<n>`
 - `POST /api/words`
 
 Current page-oriented endpoints:
@@ -296,6 +306,21 @@ Current page-oriented endpoints:
 - `GET /word/{slug}`
 
 Successful responses are typed with dedicated Pydantic models.
+
+`GET /api/autocomplete` returns:
+- `{"results": []}` for an empty query
+- up to 10 matching values for a non-empty prefix
+
+`GET /api/words` returns a paginated envelope:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "limit": 20,
+  "offset": 0
+}
+```
 
 Error responses are now standardized as:
 
@@ -334,7 +359,7 @@ Improve:
 
 Add:
 - `GET /api/words/{slug}` for JSON detail lookup
-- pagination and filters for `GET /api/words`
+- filtering and sorting options for `GET /api/words`
 - Swagger `responses` coverage for every future endpoint
 
 ### 3. Add templates and page flow
@@ -348,9 +373,9 @@ Create:
 
 Start with:
 - app startup smoke test
-- route tests for `/`, `/health`, `/api/health`, `/api/autocomplete`
+- route tests for `/` and page-form behavior
 - schema validation tests
-- dictionary service unit tests
+- service tests for OpenAI error translation and DB failure branches
 - migration smoke test
 
 ### 5. Verify database and Docker flow
@@ -382,7 +407,5 @@ docker compose up --build
 
 - the service layer still needs hardening around race conditions and persistence conflicts
 - OpenAI integration still needs production-ready retry/validation behavior
-- there are no automated tests yet
 - HTML templates and user-facing page flow are not implemented
-- manual word creation flow without OpenAI is not implemented yet
 - full Docker end-to-end verification is still pending

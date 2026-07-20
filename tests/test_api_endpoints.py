@@ -12,7 +12,73 @@ def test_get_api_words_returns_list(client) -> None:
     response = client.get("/api/words")
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0,
+    }
+
+
+def test_get_api_words_returns_paginated_response(client) -> None:
+    client.post("/api/words", json=make_word_create_payload(source_word="apple"))
+
+    client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="banana",
+            primary_translation="банан",
+            context_sentence="I ate a banana.",
+        ),
+    )
+
+    response = client.get("/api/words?limit=1&offset=0")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert body["limit"] == 1
+    assert body["offset"] == 0
+    assert len(body["items"]) == 1
+
+
+def test_get_api_words_returns_paginated_response_with_offset(client) -> None:
+    client.post("/api/words", json=make_word_create_payload(source_word="apple"))
+
+    client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="banana",
+            primary_translation="банан",
+            context_sentence="I ate a banana.",
+        ),
+    )
+
+    client.post("/api/words", json=make_word_create_payload(source_word="phone"))
+
+    client.post("/api/words", json=make_word_create_payload(source_word="cavoon"))
+
+    response = client.get("/api/words?limit=2&offset=1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 4
+    assert body["limit"] == 2
+    assert body["offset"] == 1
+    assert len(body["items"]) == 2
+    assert [item["source_word"] for item in body["items"]] == ["phone", "banana"]
+
+
+def test_get_api_words_returns_empty_page(client) -> None:
+    response = client.get("/api/words?limit=10&offset=100")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "total": 0,
+        "limit": 10,
+        "offset": 100,
+    }
 
 
 def test_get_api_autocomplete_returns_empty_without_query(client) -> None:

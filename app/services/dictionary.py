@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, selectinload
 
@@ -241,16 +241,26 @@ def autocomplete_words(db: Session, query: str) -> list[str]:
         raise DatabaseConnectionError("Database connection failed during autocomplete.") from exc
 
 
-def list_words(db: Session) -> list[Word]:
-    stmt = (
+def paginate_words(
+    db: Session,
+    limit: int,
+    offset: int,
+) -> tuple[list[Word], int]:
+    items_stmt = (
         select(Word)
         .options(selectinload(Word.translation_options))
-        .order_by(Word.created_at.desc())
+        .order_by(Word.created_at.desc(), Word.id.desc())
+        .limit(limit)
+        .offset(offset)
     )
+    total_stmt = select(func.count(Word.id))
+
     try:
-        return list(db.execute(stmt).scalars().all())
+        items = list(db.execute(items_stmt).scalars().all())
+        total = db.execute(total_stmt).scalar_one()
+        return items, total
     except OperationalError as exc:
-        raise DatabaseConnectionError("Database connection failed while listing words.") from exc
+        raise DatabaseConnectionError("Database connection failed while paginating words.") from exc
 
 
 def lookup_or_create_word(db: Session, payload: WordLookupRequest) -> Word:
