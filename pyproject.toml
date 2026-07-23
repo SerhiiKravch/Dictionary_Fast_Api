@@ -50,6 +50,8 @@ include = ["app*"]
 testpaths = ["tests"]
 addopts = "-m 'not integration'"
 markers = [
+  "unit: fast isolated tests for pure logic and service behavior",
+  "api: tests for FastAPI endpoints using the local SQLite test layer",
   "integration: tests that require a real PostgreSQL database",
 ]
 

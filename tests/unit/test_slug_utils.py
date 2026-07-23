@@ -1,3 +1,5 @@
+import pytest
+
 from app.models.enums import LanguageCode
 from app.utils.slug import (
     build_base_slug,
@@ -5,6 +7,8 @@ from app.utils.slug import (
     generate_slug_suffix,
     slugify_text,
 )
+
+pytestmark = pytest.mark.unit
 
 
 def test_slugify_text_normalizes_spaces() -> None:

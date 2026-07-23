@@ -5,6 +5,8 @@ import pytest
 from app.exceptions.openai import OpenAIConfigurationError
 from app.services import openai_service
 
+pytestmark = pytest.mark.unit
+
 
 def test_openai_service_raises_configuration_error_when_api_key_missing(
     monkeypatch,

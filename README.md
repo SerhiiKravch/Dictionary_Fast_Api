@@ -82,17 +82,23 @@ alembic/
   versions/
 alembic.ini
 tests/
+  conftest.py
   factories.py
   fakes.py
-  conftest.py
+  api/
+    __init__.py
+    test_autocomplete_api.py
+    test_health_api.py
+    test_words_api.py
+  unit/
+    __init__.py
+    test_dictionary_service.py
+    test_lookup_or_create_word.py
+    test_openai_service.py
+    test_slug_utils.py
   integration/
     conftest.py
     test_postgres_integration.py
-  test_api_endpoints.py
-  test_dictionary_service.py
-  test_lookup_or_create_word.py
-  test_openai_service.py
-  test_slug_utils.py
 Dockerfile
 docker-compose.yml
 docker-compose.test.yml
@@ -261,6 +267,11 @@ Test helpers are organized as:
 - `tests/integration/conftest.py` for real PostgreSQL fixtures and Alembic bootstrap
 - `tests/factories.py` for reusable payload builders
 - `tests/fakes.py` for fake OpenAI service implementations
+
+Tests are grouped by level:
+- `tests/unit/` for service, utility, and isolated logic tests
+- `tests/api/` for FastAPI endpoint tests on the lightweight SQLite test layer
+- `tests/integration/` for real PostgreSQL-backed integration tests
 
 ### Database migrations
 

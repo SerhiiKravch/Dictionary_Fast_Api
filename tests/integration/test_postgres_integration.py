@@ -9,8 +9,9 @@ from app.models.word import Word
 from app.services.dictionary import create_word_manually
 from tests.factories import make_word_create, make_word_create_payload
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
+
 def test_postgres_create_word_rejects_duplicate_direction(postgres_db_session) -> None:
     payload = make_word_create(
         source_word="apple",
@@ -26,7 +27,6 @@ def test_postgres_create_word_rejects_duplicate_direction(postgres_db_session) -
     assert "selected translation direction" in str(exc_info.value).lower()
 
 
-@pytest.mark.integration
 def test_postgres_enforces_different_languages_check_constraint(postgres_db_session) -> None:
     invalid_word = Word(
         source_word="apple",
@@ -47,7 +47,6 @@ def test_postgres_enforces_different_languages_check_constraint(postgres_db_sess
     postgres_db_session.rollback()
 
 
-@pytest.mark.integration
 def test_postgres_api_words_endpoint_supports_filters_and_search(postgres_client) -> None:
     postgres_client.post("/api/words", json=make_word_create_payload(source_word="apple"))
     postgres_client.post(
@@ -80,7 +79,6 @@ def test_postgres_api_words_endpoint_supports_filters_and_search(postgres_client
     assert [item["source_word"] for item in body["items"]] == ["pineapple"]
 
 
-@pytest.mark.integration
 def test_postgres_api_word_detail_returns_translation_options(postgres_client) -> None:
     create_response = postgres_client.post(
         "/api/words",

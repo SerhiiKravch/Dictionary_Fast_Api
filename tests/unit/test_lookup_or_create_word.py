@@ -1,9 +1,13 @@
+import pytest
+
 from app.models.enums import LanguageCode
 from app.schemas.word import WordLookupRequest
 from app.services import dictionary
 from app.services.dictionary import create_word_manually, lookup_or_create_word
 from tests.factories import make_word_create
 from tests.fakes import FailingOpenAIService, FakeOpenAIService
+
+pytestmark = pytest.mark.unit
 
 
 def test_lookup_or_create_word_creates_when_missing(db_session, monkeypatch) -> None:

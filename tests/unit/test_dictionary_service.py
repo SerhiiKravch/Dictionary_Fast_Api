@@ -16,6 +16,8 @@ from app.services.dictionary import (
 )
 from tests.factories import make_translation_option_create, make_word_create
 
+pytestmark = pytest.mark.unit
+
 
 def test_normalize_word_strips_and_lowercase() -> None:
     assert normalize_word("  Apple  ") == "apple"
