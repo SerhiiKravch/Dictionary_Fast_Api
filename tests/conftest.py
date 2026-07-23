@@ -27,7 +27,11 @@ TestingSessionLocal = sessionmaker(
 
 
 @pytest.fixture(autouse=True)
-def setup_database() -> Generator[None, None, None]:
+def setup_database(request: pytest.FixtureRequest) -> Generator[None, None, None]:
+    if request.node.get_closest_marker("integration") is not None:
+        yield
+        return
+
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)

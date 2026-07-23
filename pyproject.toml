@@ -48,6 +48,10 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not integration'"
+markers = [
+  "integration: tests that require a real PostgreSQL database",
+]
 
 [tool.coverage.run]
 source = ["app"]

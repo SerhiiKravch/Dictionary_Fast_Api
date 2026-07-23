@@ -85,6 +85,9 @@ tests/
   factories.py
   fakes.py
   conftest.py
+  integration/
+    conftest.py
+    test_postgres_integration.py
   test_api_endpoints.py
   test_dictionary_service.py
   test_lookup_or_create_word.py
@@ -92,6 +95,7 @@ tests/
   test_slug_utils.py
 Dockerfile
 docker-compose.yml
+docker-compose.test.yml
 pyproject.toml
 uv.lock
 .pre-commit-config.yaml
@@ -250,9 +254,11 @@ The current test suite covers:
 - autocomplete behavior, including empty-query handling and result limiting
 - reusable slug helper behavior
 - OpenAI configuration error behavior
+- PostgreSQL integration checks for constraints, filtered API responses, and nested detail loading
 
 Test helpers are organized as:
 - `tests/conftest.py` for DB and client fixtures
+- `tests/integration/conftest.py` for real PostgreSQL fixtures and Alembic bootstrap
 - `tests/factories.py` for reusable payload builders
 - `tests/fakes.py` for fake OpenAI service implementations
 
@@ -295,6 +301,7 @@ Current `pre-commit` setup runs:
 The repository already includes:
 - `Dockerfile`
 - `docker-compose.yml` with PostgreSQL 16
+- `docker-compose.test.yml` with a dedicated PostgreSQL 16 instance for integration tests
 
 Important note:
 - the infrastructure is prepared, but the user-facing product flow is still incomplete until services, routes, templates, and tests are fully finished
@@ -422,6 +429,18 @@ For Docker-based development:
 ```bash
 docker compose up --build
 ```
+
+For PostgreSQL integration tests:
+
+```bash
+docker compose -f docker-compose.test.yml up -d db_test
+DATABASE_URL_TEST=postgresql+psycopg://dictionary_user:dictionary_pass@localhost:5434/dictionary_test \
+uv run pytest -m integration
+```
+
+Notes:
+- regular `pytest` excludes integration tests by default
+- integration tests run Alembic migrations against the test database before executing
 
 ## Current Gaps / Risks
 
