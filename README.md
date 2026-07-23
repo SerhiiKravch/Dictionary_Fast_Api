@@ -28,10 +28,10 @@ Implemented now:
 - Pydantic schemas for lookup, generated payloads, create/read DTOs, paginated list responses, and shared success/error responses
 - Alembic configuration with an initial migration for `words` and `translation_options`
 - FastAPI application bootstrap in `app/main.py`
-- routes for `GET /`, `POST /lookup`, `GET /word/{slug}`, `GET /api/health`, `GET /api/autocomplete`, `GET /api/words`, and `POST /api/words`
+- routes for `GET /`, `POST /lookup`, `GET /word/{slug}`, `GET /api/health`, `GET /api/autocomplete`, `GET /api/words`, `GET /api/words/{slug}`, and `POST /api/words`
 - custom exception hierarchy, centralized error handlers, and reusable OpenAPI error-response definitions with examples
-- service-layer logic for dictionary lookup, manual word creation, autocomplete, paginated list endpoints, and OpenAI calls
-- automated unit and API tests for service logic, lookup flow, pagination, autocomplete, and slug helpers
+- service-layer logic for dictionary lookup, manual word creation, filtered/paginated list endpoints, autocomplete, and OpenAI calls
+- automated unit and API tests for service logic, lookup flow, pagination, filters, autocomplete, slug helpers, and OpenAI configuration errors
 - populated `.env.example`
 
 Still missing or incomplete:
@@ -76,8 +76,6 @@ app/
   utils/
     __init__.py
     slug.py
-  templates/
-  static/
 alembic/
   env.py
   script.py.mako
@@ -90,6 +88,8 @@ tests/
   test_api_endpoints.py
   test_dictionary_service.py
   test_lookup_or_create_word.py
+  test_openai_service.py
+  test_slug_utils.py
 Dockerfile
 docker-compose.yml
 pyproject.toml
@@ -119,6 +119,7 @@ README.md
 `app/core/error_handlers.py` contains:
 - FastAPI exception handler registration
 - mapping of domain/integration/persistence exceptions to HTTP responses
+- explicit handling for missing or invalid OpenAI configuration
 - unified JSON error payloads with `detail`, `error_code`, and `errors`
 
 ### Exceptions
@@ -128,6 +129,7 @@ README.md
 - dictionary/domain exceptions
 - OpenAI integration exceptions
 - database/persistence exceptions
+- OpenAI configuration exceptions
 
 ### Models
 
@@ -182,7 +184,7 @@ These schemas already cover:
 - `POST /lookup`
 - `GET /word/{slug}`
 
-These page-style routes now also declare typed error responses in OpenAPI for:
+These root-level routes currently return JSON and declare typed error responses in OpenAPI for:
 - validation errors
 - not found errors
 - OpenAI integration errors
@@ -192,6 +194,7 @@ These page-style routes now also declare typed error responses in OpenAPI for:
 - `GET /api/health`
 - `GET /api/autocomplete`
 - `GET /api/words`
+- `GET /api/words/{slug}`
 - `POST /api/words`
 
 These API routes now declare typed `ErrorResponse` models in OpenAPI for:
@@ -200,6 +203,7 @@ These API routes now declare typed `ErrorResponse` models in OpenAPI for:
 - duplicate-word conflicts
 - application/database failures
 - rate-limit and integration failures where applicable
+- missing OpenAI configuration during lookup flow
 
 Shared OpenAPI error-response maps are now centralized in:
 - `app/routes/responses.py`
@@ -215,13 +219,14 @@ Shared OpenAPI error-response maps are now centralized in:
 - slug generation via dedicated utilities
 - autocomplete query
 - creation of `Word` with `TranslationOption[]`
-- paginated listing of saved words
+- filtered and paginated listing of saved words
 - orchestration of lookup-or-create flow
 - database connectivity error translation into app exceptions
 - typed translation option input handling for both manual and generated create flows
 
 `app/services/openai_service.py` currently contains:
 - OpenAI client initialization
+- explicit API-key/configuration validation
 - prompt generation
 - structured response parsing
 - basic API/rate-limit error translation into app exceptions
@@ -240,9 +245,11 @@ The current test suite covers:
 - duplicate-word protection
 - slug conflict retry behavior
 - lookup-or-create flow with OpenAI mocked out
-- API health/list/create/not-found/validation scenarios
+- API health/list/detail/create/not-found/validation scenarios
+- list filtering by language, origin, and search query
 - autocomplete behavior, including empty-query handling and result limiting
 - reusable slug helper behavior
+- OpenAI configuration error behavior
 
 Test helpers are organized as:
 - `tests/conftest.py` for DB and client fixtures
@@ -297,10 +304,11 @@ Important note:
 Current JSON API endpoints:
 - `GET /api/health`
 - `GET /api/autocomplete?q=<prefix>`
-- `GET /api/words?limit=<n>&offset=<n>`
+- `GET /api/words?limit=<n>&offset=<n>&source_language=<code>&target_language=<code>&origin=<value>&search=<text>`
+- `GET /api/words/{slug}`
 - `POST /api/words`
 
-Current page-oriented endpoints:
+Current root-level endpoints:
 - `GET /`
 - `POST /lookup`
 - `GET /word/{slug}`
@@ -321,6 +329,8 @@ Successful responses are typed with dedicated Pydantic models.
   "offset": 0
 }
 ```
+
+`GET /api/words/{slug}` returns a single `WordRead` object with nested `translation_options`.
 
 Error responses are now standardized as:
 
@@ -358,9 +368,13 @@ Improve:
 ### 2. Expand the routes
 
 Add:
-- `GET /api/words/{slug}` for JSON detail lookup
 - filtering and sorting options for `GET /api/words`
 - Swagger `responses` coverage for every future endpoint
+
+Implemented already:
+- `GET /api/words/{slug}` JSON detail lookup
+- filtering for `source_language`, `target_language`, `origin`, and `search`
+- pagination via `limit` and `offset`
 
 ### 3. Add templates and page flow
 
@@ -377,6 +391,12 @@ Start with:
 - schema validation tests
 - service tests for OpenAI error translation and DB failure branches
 - migration smoke test
+
+Already covered:
+- service tests for normalization, duplicate protection, slug retries, and lookup-or-create flow
+- API tests for list pagination, filters, autocomplete, detail lookup, create, and validation errors
+- utility tests for slug generation helpers
+- OpenAI configuration error test
 
 ### 5. Verify database and Docker flow
 
@@ -407,5 +427,5 @@ docker compose up --build
 
 - the service layer still needs hardening around race conditions and persistence conflicts
 - OpenAI integration still needs production-ready retry/validation behavior
-- HTML templates and user-facing page flow are not implemented
+- root-level routes still return JSON, so HTML templates and user-facing page flow are not implemented yet
 - full Docker end-to-end verification is still pending
