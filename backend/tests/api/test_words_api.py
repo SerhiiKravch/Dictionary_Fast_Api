@@ -79,6 +79,23 @@ def test_get_api_words_returns_empty_page(client) -> None:
     }
 
 
+def test_get_api_words_uses_gzip_for_large_response(client) -> None:
+    for index in range(4):
+        client.post(
+            "/api/words",
+            json=make_word_create_payload(
+                source_word=f"word-{index}",
+                primary_translation=f"переклад-{index}",
+                context_sentence="A" * 300,
+            ),
+        )
+
+    response = client.get("/api/words", headers={"Accept-Encoding": "gzip"})
+
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"
+
+
 def test_get_api_words_filters_by_source_language(client) -> None:
     client.post("/api/words", json=make_word_create_payload(source_word="apple"))
     client.post(
