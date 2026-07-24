@@ -18,6 +18,8 @@ htmlcov/
 # Environment files
 .env
 .env.*
+!.env.example
+!backend/.env.example
 
 # Editors / OS
 .DS_Store
