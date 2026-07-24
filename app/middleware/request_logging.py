@@ -1,6 +1,5 @@
 import logging
 import time
-import uuid
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -11,7 +10,12 @@ logger = logging.getLogger("app.request")
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
-        request_id = str(uuid.uuid4())
+        request_id = getattr(request.state, "request_id", None) or request.headers.get(
+            "X-Request-ID"
+        )
+        if not request_id:
+            request_id = "missing-request-id"
+
         start = time.perf_counter()
         request.state.request_id = request_id
 
@@ -43,6 +47,5 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             },
         )
 
-        response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-MS"] = str(duration_ms)
         return response
