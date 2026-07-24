@@ -8,3 +8,5 @@ def test_get_api_health(client) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+    assert response.headers["X-Request-ID"]
+    assert response.headers["X-Process-Time-MS"]
