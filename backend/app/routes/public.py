@@ -13,7 +13,7 @@ from app.schemas.common import MessageResponse
 from app.schemas.word import WordLookupRequest, WordRead
 from app.services.dictionary import get_word_by_slug, lookup_or_create_word
 
-router = APIRouter(tags=["pages"])
+router = APIRouter(tags=["public"])
 
 DbSession = Annotated[Session, Depends(get_db)]
 
@@ -24,7 +24,7 @@ DbSession = Annotated[Session, Depends(get_db)]
     status_code=200,
     responses=APPLICATION_ERROR_RESPONSES,
 )
-def index_page() -> MessageResponse:
+def index_endpoint() -> MessageResponse:
     return MessageResponse(message="Dictionary FastAPI is running")
 
 
@@ -37,7 +37,7 @@ def index_page() -> MessageResponse:
         **CONFLICT_ERROR_RESPONSES,
     },
 )
-def lookup_word_page(payload: WordLookupRequest, db: DbSession) -> WordRead:
+def lookup_word_endpoint(payload: WordLookupRequest, db: DbSession) -> WordRead:
     word = lookup_or_create_word(db=db, payload=payload)
     return WordRead.model_validate(word)
 
@@ -48,6 +48,6 @@ def lookup_word_page(payload: WordLookupRequest, db: DbSession) -> WordRead:
     status_code=200,
     responses=COMMON_PAGE_ERROR_RESPONSES,
 )
-def get_word_page(slug: str, db: DbSession) -> WordRead:
+def get_word_endpoint(slug: str, db: DbSession) -> WordRead:
     word = get_word_by_slug(db=db, slug=slug)
     return WordRead.model_validate(word)

@@ -13,13 +13,13 @@ services:
 
   web:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - db
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dictionary_user}:${POSTGRES_PASSWORD:-dictionary_pass}@db:5432/${POSTGRES_DB:-dictionary}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -27,7 +27,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ./backend:/app
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 volumes:
