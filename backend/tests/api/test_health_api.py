@@ -10,6 +10,9 @@ def test_get_api_health(client) -> None:
     assert response.json() == {"status": "ok"}
     assert response.headers["X-Request-ID"]
     assert response.headers["X-Process-Time-MS"]
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
 
 def test_get_api_health_reuses_incoming_request_id(client) -> None:
@@ -38,3 +41,10 @@ def test_options_api_health_handles_cors_preflight(client) -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+
+def test_get_api_health_rejects_untrusted_host(client) -> None:
+    response = client.get("/api/health", headers={"Host": "evil.example.com"})
+
+    assert response.status_code == 400
+    assert response.text == "Invalid host header"

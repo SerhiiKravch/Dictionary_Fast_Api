@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     cors_allow_headers: str = "*"
     cors_allow_credentials: bool = True
     gzip_minimum_size: int = 200
+    trusted_hosts: str = "localhost,127.0.0.1,testserver"
+    security_frame_options: str = "DENY"
+    security_content_type_options: str = "nosniff"
+    security_referrer_policy: str = "strict-origin-when-cross-origin"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -43,6 +47,10 @@ class Settings(BaseSettings):
     @property
     def cors_allow_headers_list(self) -> list[str]:
         return parse_csv_setting(self.cors_allow_headers)
+
+    @property
+    def trusted_hosts_list(self) -> list[str]:
+        return parse_csv_setting(self.trusted_hosts)
 
 
 @lru_cache
