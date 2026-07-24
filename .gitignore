@@ -38,6 +38,7 @@ node_modules/
 .next/
 out/
 coverage/
+*.tsbuildinfo
 
 # Logs
 *.log
