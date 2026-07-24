@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     security_frame_options: str = "DENY"
     security_content_type_options: str = "nosniff"
     security_referrer_policy: str = "strict-origin-when-cross-origin"
+    https_redirect_enabled: bool = False
+    request_max_body_size: int = 100_000
+    slow_request_threshold_ms: float = 500.0
+    rate_limit_window_seconds: int = 60
+    rate_limit_max_requests: int = 3
+    rate_limit_paths: str = "/lookup"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -51,6 +57,10 @@ class Settings(BaseSettings):
     @property
     def trusted_hosts_list(self) -> list[str]:
         return parse_csv_setting(self.trusted_hosts)
+
+    @property
+    def rate_limit_paths_list(self) -> list[str]:
+        return parse_csv_setting(self.rate_limit_paths)
 
 
 @lru_cache

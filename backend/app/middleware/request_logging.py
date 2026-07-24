@@ -5,10 +5,16 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
+from app.core.config import Settings
+
 logger = logging.getLogger("app.request")
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, settings: Settings) -> None:
+        super().__init__(app)
+        self.settings = settings
+
     async def dispatch(self, request: Request, call_next) -> Response:
         request_id = getattr(request.state, "request_id", None) or request.headers.get(
             "X-Request-ID"
@@ -46,6 +52,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 "duration_ms": duration_ms,
             },
         )
+        if duration_ms >= self.settings.slow_request_threshold_ms:
+            logger.warning(
+                "slow_request",
+                extra={
+                    "request_id": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                    "duration_ms": duration_ms,
+                },
+            )
 
         response.headers["X-Process-Time-MS"] = str(duration_ms)
         return response
