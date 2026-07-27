@@ -19,3 +19,11 @@ class WordAlreadyExistsError(ValidationAppError):
 
 class WordNotFoundError(ValidationAppError):
     """Raised when a word cannot be found."""
+
+
+class InvalidWordRelationError(ValidationAppError):
+    """Raised when a word relation request violates domain rules."""
+
+
+class WordRelationAlreadyExistsError(ValidationAppError):
+    """Raised when the same relation already exists."""

@@ -45,3 +45,9 @@ class InflectionType(StrEnum):
     FEMININE = "feminine"
     MASCULINE = "masculine"
     NEUTER = "neuter"
+
+
+class RelationType(StrEnum):
+    SYNONYM = "synonym"
+    ANTONYM = "antonym"
+    RELATED = "related"

@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
-from app.models.enums import InflectionType, LanguageCode, PartOfSpeech, WordOrigin
+from app.models.enums import InflectionType, LanguageCode, PartOfSpeech, RelationType, WordOrigin
 
 word_tags = Table(
     "word_tags",
@@ -93,6 +93,16 @@ class Word(Base):
         back_populates="words",
         order_by="Tag.name",
     )
+    outgoing_relations: Mapped[list["WordRelation"]] = relationship(
+        back_populates="source_word_ref",
+        cascade="all, delete-orphan",
+        foreign_keys="WordRelation.source_word_id",
+    )
+    incoming_relations: Mapped[list["WordRelation"]] = relationship(
+        back_populates="target_word_ref",
+        cascade="all, delete-orphan",
+        foreign_keys="WordRelation.target_word_id",
+    )
 
 
 class TranslationOption(Base):
@@ -168,4 +178,45 @@ class Tag(Base):
     words: Mapped[list[Word]] = relationship(
         secondary=word_tags,
         back_populates="tags",
+    )
+
+
+class WordRelation(Base):
+    __tablename__ = "word_relations"
+    __table_args__ = (
+        CheckConstraint(
+            "relation_type IN ('synonym', 'antonym', 'related')",
+            name="ck_word_relation_type",
+        ),
+        CheckConstraint(
+            "source_word_id <> target_word_id",
+            name="ck_word_relation_not_self",
+        ),
+        UniqueConstraint(
+            "source_word_id",
+            "target_word_id",
+            "relation_type",
+            name="uq_word_relation_unique",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    source_word_id: Mapped[int] = mapped_column(
+        ForeignKey("words.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    target_word_id: Mapped[int] = mapped_column(
+        ForeignKey("words.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    relation_type: Mapped[str] = mapped_column(
+        String(20), default=RelationType.RELATED.value, nullable=False
+    )
+    notes: Mapped[str] = mapped_column(String(255), default="", nullable=False)
+
+    source_word_ref: Mapped[Word] = relationship(
+        back_populates="outgoing_relations",
+        foreign_keys=[source_word_id],
+    )
+    target_word_ref: Mapped[Word] = relationship(
+        back_populates="incoming_relations",
+        foreign_keys=[target_word_id],
     )

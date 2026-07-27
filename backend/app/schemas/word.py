@@ -2,7 +2,14 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models.enums import DifficultyLevel, InflectionType, LanguageCode, PartOfSpeech, WordOrigin
+from app.models.enums import (
+    DifficultyLevel,
+    InflectionType,
+    LanguageCode,
+    PartOfSpeech,
+    RelationType,
+    WordOrigin,
+)
 from app.services.word_metadata_service import MAX_TAG_LENGTH, normalize_tags, validate_tag_name
 
 
@@ -147,6 +154,39 @@ class WordListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class WordRelationCreate(BaseModel):
+    target_word_id: int = Field(ge=1)
+    relation_type: RelationType
+    notes: str = Field(default="", max_length=255)
+
+    @field_validator("notes")
+    @classmethod
+    def strip_notes(cls, value: str) -> str:
+        return value.strip()
+
+
+class RelatedWordSummary(BaseModel):
+    id: int
+    slug: str
+    source_word: str
+    source_language: LanguageCode
+    target_language: LanguageCode
+    primary_translation: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WordRelationRead(BaseModel):
+    id: int
+    relation_type: RelationType
+    notes: str
+    related_word: RelatedWordSummary
+
+
+class WordRelationListResponse(BaseModel):
+    items: list[WordRelationRead]
 
 
 def ensure_unique_inflection_types(inflections: list[WordInflectionCreate]) -> None:

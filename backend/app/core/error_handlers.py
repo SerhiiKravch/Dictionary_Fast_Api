@@ -4,7 +4,12 @@ from fastapi.responses import JSONResponse
 
 from app.exceptions import AppError, IntegrationAppError, PersistenceAppError, ValidationAppError
 from app.exceptions.database import DatabaseConnectionError
-from app.exceptions.dictionary import WordAlreadyExistsError, WordNotFoundError
+from app.exceptions.dictionary import (
+    InvalidWordRelationError,
+    WordAlreadyExistsError,
+    WordNotFoundError,
+    WordRelationAlreadyExistsError,
+)
 from app.exceptions.openai import (
     OpenAIConfigurationError,
     OpenAIRateLimitError,
@@ -78,6 +83,28 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=404,
             detail=str(exc) or "Word not found.",
             error_code="word_not_found",
+        )
+
+    @app.exception_handler(WordRelationAlreadyExistsError)
+    async def handle_word_relation_exists_error(
+        request: Request,
+        exc: WordRelationAlreadyExistsError,
+    ) -> JSONResponse:
+        return build_error_response(
+            status_code=409,
+            detail=str(exc) or "Word relation already exists.",
+            error_code="word_relation_already_exists",
+        )
+
+    @app.exception_handler(InvalidWordRelationError)
+    async def handle_invalid_word_relation_error(
+        request: Request,
+        exc: InvalidWordRelationError,
+    ) -> JSONResponse:
+        return build_error_response(
+            status_code=400,
+            detail=str(exc) or "Invalid word relation.",
+            error_code="invalid_word_relation",
         )
 
     @app.exception_handler(OpenAIRateLimitError)

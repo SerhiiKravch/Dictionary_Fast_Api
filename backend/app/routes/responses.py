@@ -85,6 +85,14 @@ CONFLICT_ERROR_RESPONSES = {
     ),
 }
 
+RELATION_CONFLICT_ERROR_RESPONSES = {
+    409: build_error_response_doc(
+        "Word relation already exists",
+        detail="The selected word relation already exists.",
+        error_code="word_relation_already_exists",
+    ),
+}
+
 INTEGRATION_ERROR_RESPONSES = {
     502: build_error_response_doc(
         "OpenAI integration error",

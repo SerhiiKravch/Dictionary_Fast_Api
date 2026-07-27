@@ -11,15 +11,25 @@ from app.routes.responses import (
     CONFLICT_ERROR_RESPONSES,
     DOMAIN_ERROR_RESPONSES,
     NOT_FOUND_ERROR_RESPONSES,
+    RELATION_CONFLICT_ERROR_RESPONSES,
 )
 from app.schemas.common import HealthResponse
-from app.schemas.word import AutocompleteResponse, WordCreate, WordListResponse, WordRead
+from app.schemas.word import (
+    AutocompleteResponse,
+    WordCreate,
+    WordListResponse,
+    WordRead,
+    WordRelationCreate,
+    WordRelationListResponse,
+    WordRelationRead,
+)
 from app.services.dictionary import (
     autocomplete_words,
     create_word_manually,
     get_word_by_slug,
     paginate_words,
 )
+from app.services.word_relation_service import create_word_relation, get_word_relations_by_slug
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -119,3 +129,55 @@ def create_word_endpoint(
 ) -> WordRead:
     word = create_word_manually(db=db, payload=payload)
     return WordRead.model_validate(word)
+
+
+@router.post(
+    "/words/{word_id}/relations",
+    response_model=WordRelationRead,
+    status_code=201,
+    responses={
+        **COMMON_API_ERROR_RESPONSES,
+        **DOMAIN_ERROR_RESPONSES,
+        **NOT_FOUND_ERROR_RESPONSES,
+        **RELATION_CONFLICT_ERROR_RESPONSES,
+    },
+)
+def create_word_relation_endpoint(
+    word_id: int,
+    payload: WordRelationCreate,
+    db: DbSession,
+) -> WordRelationRead:
+    relation = create_word_relation(db=db, word_id=word_id, payload=payload)
+    return WordRelationRead(
+        id=relation.id,
+        relation_type=relation.relation_type,
+        notes=relation.notes,
+        related_word=relation.target_word_ref,
+    )
+
+
+@router.get(
+    "/words/{slug}/relations",
+    response_model=WordRelationListResponse,
+    status_code=200,
+    responses={
+        **COMMON_API_ERROR_RESPONSES,
+        **NOT_FOUND_ERROR_RESPONSES,
+    },
+)
+def list_word_relations_endpoint(
+    slug: str,
+    db: DbSession,
+) -> WordRelationListResponse:
+    relations = get_word_relations_by_slug(db=db, slug=slug)
+    return WordRelationListResponse(
+        items=[
+            WordRelationRead(
+                id=relation.id,
+                relation_type=relation.relation_type,
+                notes=relation.notes,
+                related_word=relation.target_word_ref,
+            )
+            for relation in relations
+        ]
+    )
