@@ -74,7 +74,19 @@ cd frontend
 npm run lint
 npm run typecheck
 npm run build
+npm run test
 ```
+
+`npm run test` is currently a placeholder so the frontend package already exposes a stable testing entrypoint before a real test runner is introduced.
+
+## Git Hooks
+
+Frontend checks are enforced through the repository root `pre-commit` configuration.
+
+- `npm --prefix frontend run lint`
+- `npm --prefix frontend run typecheck`
+
+`lint-staged` is intentionally not added at this stage to keep the monorepo hook setup centralized in one place.
 
 ## Docker
 
