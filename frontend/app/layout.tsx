@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import "./globals.css";
 
@@ -14,7 +15,23 @@ type RootLayoutProps = Readonly<{
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="site-shell">
+          <header className="site-header">
+            <div className="site-header__inner">
+              <Link href="/" className="site-brand">
+                Dictionary
+              </Link>
+              <nav className="site-nav" aria-label="Primary">
+                <Link href="/">Search</Link>
+                <Link href="/words">Browse</Link>
+                <Link href="/words/new">Add word</Link>
+              </nav>
+            </div>
+          </header>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
