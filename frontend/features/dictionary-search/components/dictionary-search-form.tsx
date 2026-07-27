@@ -17,6 +17,7 @@ export function DictionarySearchForm() {
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<LookupDirection>("en:uk");
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [isAutocompleteLoading, setIsAutocompleteLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -34,8 +35,10 @@ export function DictionarySearchForm() {
       try {
         const response = await getAutocomplete(normalizedQuery);
         setSuggestions(response.results);
+        setActiveIndex(response.results.length > 0 ? 0 : -1);
       } catch {
         setSuggestions([]);
+        setActiveIndex(-1);
       } finally {
         setIsAutocompleteLoading(false);
       }
@@ -49,6 +52,11 @@ export function DictionarySearchForm() {
 
     if (!query.trim()) {
       setErrorMessage("Enter a word before searching.");
+      return;
+    }
+
+    if (suggestions.length > 0 && activeIndex >= 0) {
+      handleSuggestionSelect(suggestions[activeIndex]);
       return;
     }
 
@@ -76,7 +84,41 @@ export function DictionarySearchForm() {
   function handleSuggestionSelect(value: string) {
     setQuery(value);
     setSuggestions([]);
+    setActiveIndex(-1);
     setErrorMessage("");
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (suggestions.length === 0) {
+      if (event.key === "Escape") {
+        setSuggestions([]);
+        setActiveIndex(-1);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((current) => (current + 1) % suggestions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((current) => (current <= 0 ? suggestions.length - 1 : current - 1));
+      return;
+    }
+
+    if (event.key === "Enter" && activeIndex >= 0) {
+      event.preventDefault();
+      handleSuggestionSelect(suggestions[activeIndex]);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setSuggestions([]);
+      setActiveIndex(-1);
+    }
   }
 
   return (
@@ -96,14 +138,20 @@ export function DictionarySearchForm() {
 
             if (!nextValue.trim()) {
               setSuggestions([]);
+              setActiveIndex(-1);
             }
           }}
+          onKeyDown={handleKeyDown}
           placeholder="Type apple or кіт"
           autoComplete="off"
+          aria-autocomplete="list"
+          aria-controls="dictionary-search-suggestions"
         />
         <AutocompleteDropdown
           suggestions={suggestions}
           isLoading={isAutocompleteLoading}
+          activeIndex={activeIndex}
+          query={query}
           onSelect={handleSuggestionSelect}
         />
       </div>

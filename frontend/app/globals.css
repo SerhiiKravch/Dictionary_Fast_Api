@@ -186,6 +186,13 @@ a {
   padding: 14px 16px;
 }
 
+.text-input.is-invalid,
+.select-input.is-invalid,
+.textarea-input.is-invalid {
+  border-color: rgba(156, 47, 47, 0.42);
+  box-shadow: 0 0 0 3px rgba(156, 47, 47, 0.08);
+}
+
 .textarea-input {
   resize: vertical;
 }
@@ -269,6 +276,10 @@ a {
 }
 
 .suggestion-item:hover {
+  background: var(--accent-soft);
+}
+
+.suggestion-item.is-active {
   background: var(--accent-soft);
 }
 
@@ -383,6 +394,22 @@ a {
 
 .empty-state h2 {
   margin-top: 0;
+}
+
+.empty-state--compact {
+  padding: 14px 16px;
+}
+
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.9rem;
 }
 
 .skeleton {

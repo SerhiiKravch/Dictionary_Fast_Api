@@ -23,6 +23,15 @@ const DEFAULT_OPTION: TranslationOptionDraft = {
   usage_note: "",
 };
 
+type ValidationErrors = {
+  sourceWord?: string;
+  transcription?: string;
+  primaryTranslation?: string;
+  contextSentence?: string;
+  direction?: string;
+  translationOptions?: string;
+};
+
 export function CreateWordForm() {
   const router = useRouter();
   const [sourceWord, setSourceWord] = useState("");
@@ -37,6 +46,7 @@ export function CreateWordForm() {
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   function updateOption(id: number, patch: Partial<TranslationOptionDraft>) {
     setTranslationOptions((current) =>
@@ -58,9 +68,52 @@ export function CreateWordForm() {
     setTranslationOptions((current) => current.filter((option) => option.id !== id));
   }
 
+  function validateForm(): ValidationErrors {
+    const errors: ValidationErrors = {};
+
+    if (!sourceWord.trim()) {
+      errors.sourceWord = "Source word is required.";
+    }
+
+    if (!transcription.trim()) {
+      errors.transcription = "Transcription is required.";
+    }
+
+    if (!primaryTranslation.trim()) {
+      errors.primaryTranslation = "Primary translation is required.";
+    }
+
+    if (!contextSentence.trim()) {
+      errors.contextSentence = "Context sentence is required.";
+    }
+
+    if (sourceLanguage === targetLanguage) {
+      errors.direction = "Source and target languages must be different.";
+    }
+
+    const partiallyFilledOption = translationOptions.some(
+      (option) =>
+        !option.text.trim() && (option.usage_note.trim() || option.priority !== 1 || option.part_of_speech !== "other"),
+    );
+
+    if (partiallyFilledOption) {
+      errors.translationOptions =
+        "Every translation option with extra data must also include translation text.";
+    }
+
+    return errors;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    const nextValidationErrors = validateForm();
+    setValidationErrors(nextValidationErrors);
+
+    if (Object.keys(nextValidationErrors).length > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     const normalizedOptions: TranslationOptionCreate[] = translationOptions
@@ -98,30 +151,51 @@ export function CreateWordForm() {
 
   return (
     <form className="panel stack-md" onSubmit={handleSubmit}>
+      {Object.keys(validationErrors).length > 0 ? (
+        <div className="message message--error" role="alert">
+          <strong>Fix the highlighted fields before submitting.</strong>
+        </div>
+      ) : null}
+
       <div className="form-grid">
         <Field label="Source word">
           <input
-            className="text-input"
+            className={validationErrors.sourceWord ? "text-input is-invalid" : "text-input"}
             value={sourceWord}
-            onChange={(event) => setSourceWord(event.target.value)}
+            onChange={(event) => {
+              setSourceWord(event.target.value);
+              setValidationErrors((current) => ({ ...current, sourceWord: undefined }));
+            }}
             required
           />
+          {validationErrors.sourceWord ? (
+            <p className="field-error">{validationErrors.sourceWord}</p>
+          ) : null}
         </Field>
 
         <Field label="Transcription">
           <input
-            className="text-input"
+            className={validationErrors.transcription ? "text-input is-invalid" : "text-input"}
             value={transcription}
-            onChange={(event) => setTranscription(event.target.value)}
+            onChange={(event) => {
+              setTranscription(event.target.value);
+              setValidationErrors((current) => ({ ...current, transcription: undefined }));
+            }}
             required
           />
+          {validationErrors.transcription ? (
+            <p className="field-error">{validationErrors.transcription}</p>
+          ) : null}
         </Field>
 
         <Field label="Source language">
           <select
             className="select-input"
             value={sourceLanguage}
-            onChange={(event) => setSourceLanguage(event.target.value as LanguageCode)}
+            onChange={(event) => {
+              setSourceLanguage(event.target.value as LanguageCode);
+              setValidationErrors((current) => ({ ...current, direction: undefined }));
+            }}
           >
             <option value="en">English</option>
             <option value="uk">Ukrainian</option>
@@ -130,22 +204,34 @@ export function CreateWordForm() {
 
         <Field label="Target language">
           <select
-            className="select-input"
+            className={validationErrors.direction ? "select-input is-invalid" : "select-input"}
             value={targetLanguage}
-            onChange={(event) => setTargetLanguage(event.target.value as LanguageCode)}
+            onChange={(event) => {
+              setTargetLanguage(event.target.value as LanguageCode);
+              setValidationErrors((current) => ({ ...current, direction: undefined }));
+            }}
           >
             <option value="uk">Ukrainian</option>
             <option value="en">English</option>
           </select>
+          {validationErrors.direction ? (
+            <p className="field-error">{validationErrors.direction}</p>
+          ) : null}
         </Field>
 
         <Field label="Primary translation">
           <input
-            className="text-input"
+            className={validationErrors.primaryTranslation ? "text-input is-invalid" : "text-input"}
             value={primaryTranslation}
-            onChange={(event) => setPrimaryTranslation(event.target.value)}
+            onChange={(event) => {
+              setPrimaryTranslation(event.target.value);
+              setValidationErrors((current) => ({ ...current, primaryTranslation: undefined }));
+            }}
             required
           />
+          {validationErrors.primaryTranslation ? (
+            <p className="field-error">{validationErrors.primaryTranslation}</p>
+          ) : null}
         </Field>
 
         <Field label="Origin">
@@ -163,19 +249,28 @@ export function CreateWordForm() {
 
       <Field label="Context sentence">
         <textarea
-          className="textarea-input"
+          className={validationErrors.contextSentence ? "textarea-input is-invalid" : "textarea-input"}
           value={contextSentence}
-          onChange={(event) => setContextSentence(event.target.value)}
+          onChange={(event) => {
+            setContextSentence(event.target.value);
+            setValidationErrors((current) => ({ ...current, contextSentence: undefined }));
+          }}
           rows={4}
           required
         />
+        {validationErrors.contextSentence ? (
+          <p className="field-error">{validationErrors.contextSentence}</p>
+        ) : null}
       </Field>
 
       <div className="stack-sm">
         <div className="split-heading">
           <div>
             <span className="field-label">Translation options</span>
-            <p className="supporting-text">Add alternative meanings and usage notes.</p>
+            <p className="supporting-text">
+              Add alternative meanings and usage notes, or leave the option empty to save only the
+              main translation.
+            </p>
           </div>
           <button className="button" type="button" onClick={addOption}>
             Add option
@@ -247,6 +342,9 @@ export function CreateWordForm() {
             </div>
           ))}
         </div>
+        {validationErrors.translationOptions ? (
+          <p className="field-error">{validationErrors.translationOptions}</p>
+        ) : null}
       </div>
 
       {errorMessage ? <p className="message message--error">{errorMessage}</p> : null}
