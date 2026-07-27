@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
-from app.schemas.word import TranslationOptionCreate, WordCreate
+from app.models.enums import DifficultyLevel, InflectionType, LanguageCode, PartOfSpeech, WordOrigin
+from app.schemas.word import TranslationOptionCreate, WordCreate, WordInflectionCreate
 
 
 def make_translation_option_create(
@@ -27,7 +27,10 @@ def make_word_create(
     transcription: str = "[ap-l]",
     primary_translation: str = "яблуко",
     context_sentence: str = "I ate an apple.",
+    difficulty_level: DifficultyLevel | None = None,
     origin: WordOrigin = WordOrigin.MANUAL,
+    tags: list[str] | None = None,
+    inflections: list[WordInflectionCreate] | None = None,
     translation_options: list[TranslationOptionCreate] | None = None,
 ) -> WordCreate:
     return WordCreate(
@@ -37,8 +40,24 @@ def make_word_create(
         transcription=transcription,
         primary_translation=primary_translation,
         context_sentence=context_sentence,
+        difficulty_level=difficulty_level,
         origin=origin,
+        tags=tags or [],
+        inflections=inflections or [],
         translation_options=translation_options or [],
+    )
+
+
+def make_word_inflection_create(
+    *,
+    form_type: InflectionType = InflectionType.PLURAL,
+    value: str = "apples",
+    notes: str = "",
+) -> WordInflectionCreate:
+    return WordInflectionCreate(
+        form_type=form_type,
+        value=value,
+        notes=notes,
     )
 
 
@@ -50,7 +69,10 @@ def make_word_create_payload(**overrides: object) -> dict[str, object]:
         "transcription": "[ap-l]",
         "primary_translation": "яблуко",
         "context_sentence": "I ate an apple.",
+        "difficulty_level": None,
         "origin": "manual",
+        "tags": [],
+        "inflections": [],
         "translation_options": [],
     }
     payload.update(overrides)

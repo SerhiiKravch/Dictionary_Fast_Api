@@ -13,18 +13,20 @@ from app.exceptions.dictionary import (
     WordNotFoundError,
 )
 from app.models.enums import LanguageCode, WordOrigin
-from app.models.word import TranslationOption, Word
+from app.models.word import Tag, TranslationOption, Word, WordInflection
 from app.schemas.word import (
     GeneratedTranslationOption,
     GeneratedWordPayload,
     TranslationOptionCreate,
     WordCreate,
+    WordInflectionCreate,
     WordLookupRequest,
 )
 from app.services.openai_service import OpenAIService
 from app.utils.slug import build_base_slug, build_slug_with_suffix, generate_slug_suffix
 
 TranslationOptionInput = GeneratedTranslationOption | TranslationOptionCreate
+WordInflectionInput = WordInflectionCreate
 
 
 def normalize_word(word: str) -> str:
@@ -71,7 +73,15 @@ def get_existing_word(
 
 
 def get_word_by_slug(db: Session, slug: str) -> Word:
-    stmt = select(Word).options(selectinload(Word.translation_options)).where(Word.slug == slug)
+    stmt = (
+        select(Word)
+        .options(
+            selectinload(Word.translation_options),
+            selectinload(Word.tags),
+            selectinload(Word.inflections),
+        )
+        .where(Word.slug == slug)
+    )
     try:
         word = db.execute(stmt).scalar_one_or_none()
     except OperationalError as exc:
@@ -106,7 +116,10 @@ def persist_word_with_options(
     transcription: str,
     primary_translation: str,
     context_sentence: str,
+    difficulty_level: str | None,
     origin: WordOrigin,
+    tags: Sequence[str],
+    inflections: Sequence[WordInflectionInput],
     translation_options: Sequence[TranslationOptionInput],
 ) -> Word:
     base_slug = build_base_slug(
@@ -130,10 +143,24 @@ def persist_word_with_options(
                 transcription=transcription,
                 primary_translation=primary_translation,
                 context_sentence=context_sentence,
+                difficulty_level=difficulty_level,
                 origin=origin.value,
             )
             db.add(word)
             db.flush()
+
+            for tag in get_or_create_tags(db, tags):
+                word.tags.append(tag)
+
+            for inflection in inflections:
+                db.add(
+                    WordInflection(
+                        word_id=word.id,
+                        form_type=inflection.form_type.value,
+                        value=inflection.value,
+                        notes=inflection.notes,
+                    )
+                )
 
             for option in translation_options:
                 db.add(
@@ -189,7 +216,10 @@ def create_word_with_options(
         transcription=payload.transcription,
         primary_translation=payload.primary_translation,
         context_sentence=payload.context_sentence,
+        difficulty_level=payload.difficulty_level.value if payload.difficulty_level else None,
         origin=payload.origin,
+        tags=payload.tags,
+        inflections=payload.inflections,
         translation_options=payload.translation_options,
     )
 
@@ -218,7 +248,10 @@ def create_word_manually(db: Session, payload: WordCreate) -> Word:
         transcription=payload.transcription,
         primary_translation=payload.primary_translation,
         context_sentence=payload.context_sentence,
+        difficulty_level=payload.difficulty_level.value if payload.difficulty_level else None,
         origin=payload.origin,
+        tags=payload.tags,
+        inflections=payload.inflections,
         translation_options=payload.translation_options,
     )
 
@@ -263,6 +296,41 @@ def apply_word_filters(
     return stmt
 
 
+def normalize_tags(tags: Sequence[str]) -> list[str]:
+    normalized_tags: list[str] = []
+    seen: set[str] = set()
+
+    for tag in tags:
+        normalized = tag.strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        normalized_tags.append(normalized)
+
+    return sorted(normalized_tags)
+
+
+def get_or_create_tags(db: Session, tags: Sequence[str]) -> list[Tag]:
+    normalized_tags = normalize_tags(tags)
+    if not normalized_tags:
+        return []
+
+    existing_tags_query = db.execute(select(Tag).where(Tag.name.in_(normalized_tags))).scalars()
+    existing_tags = {tag.name: tag for tag in existing_tags_query}
+    resolved_tags = list(existing_tags.values())
+
+    for tag_name in normalized_tags:
+        if tag_name in existing_tags:
+            continue
+        tag = Tag(name=tag_name)
+        db.add(tag)
+        db.flush()
+        resolved_tags.append(tag)
+        existing_tags[tag_name] = tag
+
+    return resolved_tags
+
+
 def paginate_words(
     db: Session,
     limit: int,
@@ -274,7 +342,11 @@ def paginate_words(
     search: str = "",
 ) -> tuple[list[Word], int]:
     items_stmt = apply_word_filters(
-        select(Word).options(selectinload(Word.translation_options)),
+        select(Word).options(
+            selectinload(Word.translation_options),
+            selectinload(Word.tags),
+            selectinload(Word.inflections),
+        ),
         source_language=source_language,
         target_language=target_language,
         origin=origin,

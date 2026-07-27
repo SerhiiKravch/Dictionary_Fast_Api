@@ -6,7 +6,7 @@ from app.exceptions.dictionary import (
     SameLanguageDirectionError,
     WordAlreadyExistsError,
 )
-from app.models.enums import LanguageCode
+from app.models.enums import DifficultyLevel, InflectionType, LanguageCode
 from app.services import dictionary
 from app.services.dictionary import (
     create_word_manually,
@@ -14,7 +14,11 @@ from app.services.dictionary import (
     parse_direction,
     validate_language_direction,
 )
-from tests.factories import make_translation_option_create, make_word_create
+from tests.factories import (
+    make_translation_option_create,
+    make_word_create,
+    make_word_inflection_create,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -101,6 +105,35 @@ def test_create_word_manually_rejects_duplicate_direction(db_session) -> None:
 
     with pytest.raises(WordAlreadyExistsError):
         create_word_manually(db=db_session, payload=payload)
+
+
+def test_create_word_manually_persists_difficulty_tags_and_inflections(db_session) -> None:
+    payload = make_word_create(
+        source_word="Run",
+        primary_translation="бігти",
+        context_sentence="I run every morning.",
+        difficulty_level=DifficultyLevel.A2,
+        tags=[" Spoken ", "common", "spoken"],
+        inflections=[
+            make_word_inflection_create(
+                form_type=InflectionType.PAST_SIMPLE,
+                value="ran",
+            ),
+            make_word_inflection_create(
+                form_type=InflectionType.PAST_PARTICIPLE,
+                value="run",
+            ),
+        ],
+    )
+
+    word = create_word_manually(db=db_session, payload=payload)
+
+    assert word.difficulty_level == DifficultyLevel.A2.value
+    assert [tag.name for tag in word.tags] == ["common", "spoken"]
+    assert [(item.form_type, item.value) for item in word.inflections] == [
+        (InflectionType.PAST_SIMPLE.value, "ran"),
+        (InflectionType.PAST_PARTICIPLE.value, "run"),
+    ]
 
 
 def test_create_word_manually_adds_suffix_on_slug_conflict(db_session, monkeypatch) -> None:

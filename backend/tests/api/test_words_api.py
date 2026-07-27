@@ -208,6 +208,31 @@ def test_post_api_words_creates_word(client) -> None:
     assert body["slug"].startswith("apple-en-uk")
 
 
+def test_post_api_words_creates_word_with_metadata(client) -> None:
+    payload = make_word_create_payload(
+        source_word="run",
+        primary_translation="бігти",
+        context_sentence="I run every morning.",
+        difficulty_level="a2",
+        tags=["spoken", "common"],
+        inflections=[
+            {"form_type": "past_simple", "value": "ran", "notes": ""},
+            {"form_type": "past_participle", "value": "run", "notes": "irregular"},
+        ],
+    )
+
+    response = client.post("/api/words", json=payload)
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["difficulty_level"] == "a2"
+    assert [tag["name"] for tag in body["tags"]] == ["common", "spoken"]
+    assert [(item["form_type"], item["value"]) for item in body["inflections"]] == [
+        ("past_simple", "ran"),
+        ("past_participle", "run"),
+    ]
+
+
 def test_post_api_words_returns_409_for_duplicate(client) -> None:
     payload = make_word_create_payload()
     client.post("/api/words", json=payload)

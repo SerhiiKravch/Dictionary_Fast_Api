@@ -17,9 +17,12 @@ def test_post_lookup_returns_429_when_rate_limit_is_exceeded(client, monkeypatch
             transcription="[test]",
             primary_translation="тест",
             context_sentence="test sentence",
+            difficulty_level=None,
             origin="manual",
             created_at="2026-07-24T00:00:00Z",
             updated_at="2026-07-24T00:00:00Z",
+            tags=[],
+            inflections=[],
             translation_options=[],
         )
 
