@@ -1,7 +1,19 @@
 from __future__ import annotations
 
-from app.models.enums import DifficultyLevel, InflectionType, LanguageCode, PartOfSpeech, WordOrigin
-from app.schemas.word import TranslationOptionCreate, WordCreate, WordInflectionCreate
+from app.models.enums import (
+    DifficultyLevel,
+    InflectionType,
+    LanguageCode,
+    PartOfSpeech,
+    RelationType,
+    WordOrigin,
+)
+from app.schemas.word import (
+    TranslationOptionCreate,
+    WordCreate,
+    WordInflectionCreate,
+    WordRelationCreate,
+)
 
 
 def make_translation_option_create(
@@ -74,6 +86,29 @@ def make_word_create_payload(**overrides: object) -> dict[str, object]:
         "tags": [],
         "inflections": [],
         "translation_options": [],
+    }
+    payload.update(overrides)
+    return payload
+
+
+def make_word_relation_create(
+    *,
+    target_word_id: int = 2,
+    relation_type: RelationType = RelationType.RELATED,
+    notes: str = "",
+) -> WordRelationCreate:
+    return WordRelationCreate(
+        target_word_id=target_word_id,
+        relation_type=relation_type,
+        notes=notes,
+    )
+
+
+def make_word_relation_payload(**overrides: object) -> dict[str, object]:
+    payload = {
+        "target_word_id": 2,
+        "relation_type": "related",
+        "notes": "",
     }
     payload.update(overrides)
     return payload

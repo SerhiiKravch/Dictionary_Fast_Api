@@ -1,6 +1,6 @@
 import pytest
 
-from tests.factories import make_word_create_payload
+from tests.factories import make_word_create_payload, make_word_relation_payload
 
 pytestmark = pytest.mark.api
 
@@ -344,3 +344,88 @@ def test_get_api_word_by_slug_returns_404_for_missing_word(client) -> None:
 
     assert response.status_code == 404
     assert response.json()["error_code"] == "word_not_found"
+
+
+def test_post_api_word_relation_creates_related_link(client) -> None:
+    first = client.post("/api/words", json=make_word_create_payload(source_word="apple")).json()
+    second = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="fruit",
+            primary_translation="фрукт",
+            context_sentence="Fruit is healthy.",
+        ),
+    ).json()
+
+    response = client.post(
+        f"/api/words/{first['id']}/relations",
+        json=make_word_relation_payload(
+            target_word_id=second["id"],
+            relation_type="related",
+            notes="semantic neighbor",
+        ),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["relation_type"] == "related"
+    assert body["notes"] == "semantic neighbor"
+    assert body["related_word"]["id"] == second["id"]
+    assert body["related_word"]["source_word"] == "fruit"
+
+
+def test_post_api_word_relation_rejects_self_relation(client) -> None:
+    word = client.post("/api/words", json=make_word_create_payload(source_word="apple")).json()
+
+    response = client.post(
+        f"/api/words/{word['id']}/relations",
+        json=make_word_relation_payload(target_word_id=word["id"]),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "invalid_word_relation"
+
+
+def test_post_api_word_relation_rejects_duplicate_relation(client) -> None:
+    first = client.post("/api/words", json=make_word_create_payload(source_word="apple")).json()
+    second = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="fruit",
+            primary_translation="фрукт",
+            context_sentence="Fruit is healthy.",
+        ),
+    ).json()
+
+    payload = make_word_relation_payload(target_word_id=second["id"], relation_type="related")
+    client.post(f"/api/words/{first['id']}/relations", json=payload)
+    response = client.post(f"/api/words/{first['id']}/relations", json=payload)
+
+    assert response.status_code == 409
+    assert response.json()["error_code"] == "word_relation_already_exists"
+
+
+def test_get_api_word_relations_returns_bidirectional_synonym(client) -> None:
+    first = client.post("/api/words", json=make_word_create_payload(source_word="big")).json()
+    second = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="large",
+            primary_translation="великий",
+            context_sentence="A large house.",
+        ),
+    ).json()
+
+    create_response = client.post(
+        f"/api/words/{first['id']}/relations",
+        json=make_word_relation_payload(target_word_id=second["id"], relation_type="synonym"),
+    )
+    assert create_response.status_code == 201
+
+    first_relations = client.get(f"/api/words/{first['slug']}/relations")
+    second_relations = client.get(f"/api/words/{second['slug']}/relations")
+
+    assert first_relations.status_code == 200
+    assert second_relations.status_code == 200
+    assert first_relations.json()["items"][0]["related_word"]["id"] == second["id"]
+    assert second_relations.json()["items"][0]["related_word"]["id"] == first["id"]
