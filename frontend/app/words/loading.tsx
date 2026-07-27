@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 export default function WordsLoading() {
   return (
     <main className="page-shell">
@@ -8,7 +10,7 @@ export default function WordsLoading() {
           <p>Fetching dictionary entries, filters, and pagination.</p>
         </div>
 
-        <div className="panel filters-grid">
+        <Card className="filters-grid">
           <div className="stack-sm">
             <div className="skeleton skeleton-label" />
             <div className="skeleton skeleton-input" />
@@ -25,7 +27,7 @@ export default function WordsLoading() {
             <div className="skeleton skeleton-label" />
             <div className="skeleton skeleton-input" />
           </div>
-        </div>
+        </Card>
 
         <div className="stack-md">
           {Array.from({ length: 4 }).map((_, index) => (

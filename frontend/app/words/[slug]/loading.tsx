@@ -1,8 +1,10 @@
+import { Card } from "@/components/ui/card";
+
 export default function WordDetailsLoading() {
   return (
     <main className="page-shell">
       <section className="page-section page-section--narrow">
-        <article className="panel stack-md">
+        <Card as="article" className="stack-md">
           <div className="inline-badges">
             <div className="skeleton skeleton-badge" />
             <div className="skeleton skeleton-badge" />
@@ -22,9 +24,9 @@ export default function WordDetailsLoading() {
             <div className="skeleton skeleton-text skeleton-text--wide" />
             <div className="skeleton skeleton-text skeleton-text--wide" />
           </div>
-        </article>
+        </Card>
 
-        <section className="panel stack-md">
+        <Card as="section" className="stack-md">
           <div className="section-heading section-heading--compact">
             <h2>Loading translation options...</h2>
             <p>Preparing detailed word data.</p>
@@ -44,7 +46,7 @@ export default function WordDetailsLoading() {
               </article>
             ))}
           </div>
-        </section>
+        </Card>
       </section>
     </main>
   );
