@@ -2,6 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+
 type PaginationProps = {
   total: number;
   limit: number;
@@ -31,25 +33,15 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
 
   return (
     <div className="pagination">
-      <button
-        className="button"
-        type="button"
-        disabled={!hasPrevious}
-        onClick={() => navigate(previousOffset)}
-      >
+      <Button type="button" disabled={!hasPrevious} onClick={() => navigate(previousOffset)}>
         Previous
-      </button>
+      </Button>
       <span className="pagination__label">
         {offset + 1}-{Math.min(offset + limit, total)} of {total}
       </span>
-      <button
-        className="button"
-        type="button"
-        disabled={!hasNext}
-        onClick={() => navigate(nextOffset)}
-      >
+      <Button type="button" disabled={!hasNext} onClick={() => navigate(nextOffset)}>
         Next
-      </button>
+      </Button>
     </div>
   );
 }

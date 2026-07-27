@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import type { WordsQueryParams } from "@/types/word";
 
 type WordsFiltersProps = {
@@ -41,74 +46,56 @@ export function WordsFilters({ filters }: WordsFiltersProps) {
   }
 
   return (
-    <form className="panel filters-grid" onSubmit={handleSubmit}>
-      <div className="stack-sm">
-        <label className="field-label" htmlFor="search">
-          Search
-        </label>
-        <input
-          id="search"
-          className="text-input"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="apple"
-        />
-      </div>
+    <form onSubmit={handleSubmit}>
+      <Card className="filters-grid">
+        <Field label="Search" htmlFor="search">
+          <Input
+            id="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="apple"
+          />
+        </Field>
 
-      <div className="stack-sm">
-        <label className="field-label" htmlFor="source-language">
-          Source
-        </label>
-        <select
-          id="source-language"
-          className="select-input"
-          value={sourceLanguage}
-          onChange={(event) => setSourceLanguage(event.target.value)}
-        >
-          <option value="">Any</option>
-          <option value="en">English</option>
-          <option value="uk">Ukrainian</option>
-        </select>
-      </div>
+        <Field label="Source" htmlFor="source-language">
+          <Select
+            id="source-language"
+            value={sourceLanguage}
+            onChange={(event) => setSourceLanguage(event.target.value)}
+          >
+            <option value="">Any</option>
+            <option value="en">English</option>
+            <option value="uk">Ukrainian</option>
+          </Select>
+        </Field>
 
-      <div className="stack-sm">
-        <label className="field-label" htmlFor="target-language">
-          Target
-        </label>
-        <select
-          id="target-language"
-          className="select-input"
-          value={targetLanguage}
-          onChange={(event) => setTargetLanguage(event.target.value)}
-        >
-          <option value="">Any</option>
-          <option value="en">English</option>
-          <option value="uk">Ukrainian</option>
-        </select>
-      </div>
+        <Field label="Target" htmlFor="target-language">
+          <Select
+            id="target-language"
+            value={targetLanguage}
+            onChange={(event) => setTargetLanguage(event.target.value)}
+          >
+            <option value="">Any</option>
+            <option value="en">English</option>
+            <option value="uk">Ukrainian</option>
+          </Select>
+        </Field>
 
-      <div className="stack-sm">
-        <label className="field-label" htmlFor="origin">
-          Origin
-        </label>
-        <select
-          id="origin"
-          className="select-input"
-          value={origin}
-          onChange={(event) => setOrigin(event.target.value)}
-        >
-          <option value="">Any</option>
-          <option value="manual">Manual</option>
-          <option value="openai">OpenAI</option>
-          <option value="imported">Imported</option>
-        </select>
-      </div>
+        <Field label="Origin" htmlFor="origin">
+          <Select id="origin" value={origin} onChange={(event) => setOrigin(event.target.value)}>
+            <option value="">Any</option>
+            <option value="manual">Manual</option>
+            <option value="openai">OpenAI</option>
+            <option value="imported">Imported</option>
+          </Select>
+        </Field>
 
-      <div className="filters-actions">
-        <button className="button button--primary" type="submit">
-          Apply filters
-        </button>
-      </div>
+        <div className="filters-actions">
+          <Button variant="primary" type="submit">
+            Apply filters
+          </Button>
+        </div>
+      </Card>
     </form>
   );
 }

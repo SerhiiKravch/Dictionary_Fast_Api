@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/card";
+
 export default function CreateWordLoading() {
   return (
     <main className="page-shell">
@@ -8,7 +10,7 @@ export default function CreateWordLoading() {
           <p>Loading the word creation workspace.</p>
         </div>
 
-        <div className="panel stack-md">
+        <Card className="stack-md">
           <div className="form-grid">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="stack-sm">
@@ -41,7 +43,7 @@ export default function CreateWordLoading() {
           </div>
 
           <div className="skeleton skeleton-button" />
-        </div>
+        </Card>
       </section>
     </main>
   );
