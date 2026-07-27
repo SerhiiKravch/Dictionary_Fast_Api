@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import DifficultyLevel, InflectionType, LanguageCode, PartOfSpeech, WordOrigin
+from app.services.word_metadata_service import MAX_TAG_LENGTH, normalize_tags, validate_tag_name
 
 
 class WordLookupRequest(BaseModel):
@@ -40,6 +41,17 @@ class GeneratedWordPayload(BaseModel):
     inflections: list["WordInflectionCreate"] = Field(default_factory=list)
     translation_options: list[GeneratedTranslationOption] = Field(default_factory=list)
 
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, value: list[str]) -> list[str]:
+        return [validate_tag_name(tag) for tag in value]
+
+    @model_validator(mode="after")
+    def validate_inflection_uniqueness(self) -> "GeneratedWordPayload":
+        ensure_unique_inflection_types(self.inflections)
+        self.tags = normalize_tags(self.tags)
+        return self
+
 
 class TranslationOptionCreate(BaseModel):
     text: str = Field(min_length=1, max_length=256)
@@ -52,6 +64,11 @@ class WordInflectionCreate(BaseModel):
     form_type: InflectionType
     value: str = Field(min_length=1, max_length=128)
     notes: str = Field(default="", max_length=255)
+
+    @field_validator("value", "notes")
+    @classmethod
+    def strip_text_fields(cls, value: str) -> str:
+        return value.strip()
 
 
 class WordCreate(BaseModel):
@@ -67,6 +84,17 @@ class WordCreate(BaseModel):
     inflections: list[WordInflectionCreate] = Field(default_factory=list)
     translation_options: list[TranslationOptionCreate] = Field(default_factory=list)
 
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, value: list[str]) -> list[str]:
+        return [validate_tag_name(tag) for tag in value]
+
+    @model_validator(mode="after")
+    def validate_inflection_uniqueness(self) -> "WordCreate":
+        ensure_unique_inflection_types(self.inflections)
+        self.tags = normalize_tags(self.tags)
+        return self
+
 
 class TranslationOptionRead(BaseModel):
     id: int
@@ -80,7 +108,7 @@ class TranslationOptionRead(BaseModel):
 
 class TagRead(BaseModel):
     id: int
-    name: str
+    name: str = Field(max_length=MAX_TAG_LENGTH)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -119,3 +147,18 @@ class WordListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+def ensure_unique_inflection_types(inflections: list[WordInflectionCreate]) -> None:
+    seen: set[InflectionType] = set()
+    duplicates: set[str] = set()
+
+    for inflection in inflections:
+        if inflection.form_type in seen:
+            duplicates.add(inflection.form_type.value)
+            continue
+        seen.add(inflection.form_type)
+
+    if duplicates:
+        duplicate_list = ", ".join(sorted(duplicates))
+        raise ValueError(f"Duplicate inflection types are not allowed: {duplicate_list}.")

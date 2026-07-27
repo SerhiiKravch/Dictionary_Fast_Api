@@ -23,6 +23,7 @@ from app.schemas.word import (
     WordLookupRequest,
 )
 from app.services.openai_service import OpenAIService
+from app.services.word_metadata_service import get_or_create_tags
 from app.utils.slug import build_base_slug, build_slug_with_suffix, generate_slug_suffix
 
 TranslationOptionInput = GeneratedTranslationOption | TranslationOptionCreate
@@ -149,7 +150,11 @@ def persist_word_with_options(
             db.add(word)
             db.flush()
 
-            for tag in get_or_create_tags(db, tags):
+            existing_tags = list(db.execute(select(Tag).where(Tag.name.in_(tags))).scalars())
+            for tag in get_or_create_tags(existing_tags, tags):
+                if tag.id is None:
+                    db.add(tag)
+                    db.flush()
                 word.tags.append(tag)
 
             for inflection in inflections:
@@ -294,41 +299,6 @@ def apply_word_filters(
         stmt = stmt.where(Word.source_word.ilike(f"%{normalized_search}%"))
 
     return stmt
-
-
-def normalize_tags(tags: Sequence[str]) -> list[str]:
-    normalized_tags: list[str] = []
-    seen: set[str] = set()
-
-    for tag in tags:
-        normalized = tag.strip().lower()
-        if not normalized or normalized in seen:
-            continue
-        seen.add(normalized)
-        normalized_tags.append(normalized)
-
-    return sorted(normalized_tags)
-
-
-def get_or_create_tags(db: Session, tags: Sequence[str]) -> list[Tag]:
-    normalized_tags = normalize_tags(tags)
-    if not normalized_tags:
-        return []
-
-    existing_tags_query = db.execute(select(Tag).where(Tag.name.in_(normalized_tags))).scalars()
-    existing_tags = {tag.name: tag for tag in existing_tags_query}
-    resolved_tags = list(existing_tags.values())
-
-    for tag_name in normalized_tags:
-        if tag_name in existing_tags:
-            continue
-        tag = Tag(name=tag_name)
-        db.add(tag)
-        db.flush()
-        resolved_tags.append(tag)
-        existing_tags[tag_name] = tag
-
-    return resolved_tags
 
 
 def paginate_words(

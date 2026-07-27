@@ -250,6 +250,49 @@ def test_post_api_words_returns_422_for_invalid_body(client) -> None:
     assert response.json()["error_code"] == "request_validation_error"
 
 
+def test_post_api_words_returns_422_for_invalid_tag(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(tags=["spoken word"]),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error_code"] == "request_validation_error"
+    assert any("Tag may contain only letters" in error["msg"] for error in body["errors"])
+
+
+def test_post_api_words_returns_422_for_duplicate_inflection_types(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            inflections=[
+                {"form_type": "past_simple", "value": "ran", "notes": ""},
+                {"form_type": "past_simple", "value": "run", "notes": ""},
+            ]
+        ),
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["error_code"] == "request_validation_error"
+    assert any("Duplicate inflection types" in error["msg"] for error in body["errors"])
+
+
+def test_post_api_words_returns_422_for_invalid_inflection_enum(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            inflections=[
+                {"form_type": "future_simple", "value": "will run", "notes": ""},
+            ]
+        ),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "request_validation_error"
+
+
 def test_get_word_by_slug_returns_404_for_missing_word(client) -> None:
     response = client.get("/word/missing-slug")
 
@@ -267,6 +310,33 @@ def test_get_api_word_by_slug_returns_word(client) -> None:
     body = response.json()
     assert body["slug"] == slug
     assert body["source_word"] == "apple"
+
+
+def test_get_api_word_by_slug_returns_metadata(client) -> None:
+    create_response = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            source_word="run",
+            primary_translation="бігти",
+            context_sentence="I run every morning.",
+            difficulty_level="a2",
+            tags=["spoken", "common"],
+            inflections=[
+                {"form_type": "past_simple", "value": "ran", "notes": ""},
+            ],
+        ),
+    )
+    slug = create_response.json()["slug"]
+
+    response = client.get(f"/api/words/{slug}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["difficulty_level"] == "a2"
+    assert [tag["name"] for tag in body["tags"]] == ["common", "spoken"]
+    assert body["inflections"] == [
+        {"id": 1, "form_type": "past_simple", "value": "ran", "notes": ""}
+    ]
 
 
 def test_get_api_word_by_slug_returns_404_for_missing_word(client) -> None:

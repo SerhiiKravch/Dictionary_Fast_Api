@@ -30,6 +30,21 @@ def build_error_response(
     )
 
 
+def serialize_validation_errors(errors: list[dict[str, object]]) -> list[dict[str, object]]:
+    serialized_errors: list[dict[str, object]] = []
+
+    for error in errors:
+        serialized_error = dict(error)
+        ctx = serialized_error.get("ctx")
+        if isinstance(ctx, dict) and "error" in ctx:
+            serialized_ctx = dict(ctx)
+            serialized_ctx["error"] = str(serialized_ctx["error"])
+            serialized_error["ctx"] = serialized_ctx
+        serialized_errors.append(serialized_error)
+
+    return serialized_errors
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
@@ -40,7 +55,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=422,
             detail="Request validation failed.",
             error_code="request_validation_error",
-            errors=[dict(error) for error in exc.errors()],
+            errors=serialize_validation_errors([dict(error) for error in exc.errors()]),
         )
 
     @app.exception_handler(WordAlreadyExistsError)

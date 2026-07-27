@@ -14,6 +14,7 @@ from app.services.dictionary import (
     parse_direction,
     validate_language_direction,
 )
+from app.services.word_metadata_service import normalize_tags, validate_tag_name
 from tests.factories import (
     make_translation_option_create,
     make_word_create,
@@ -55,6 +56,19 @@ def test_parse_direction_invalid_format() -> None:
 def test_parse_direction_rejects_same_languages() -> None:
     with pytest.raises(SameLanguageDirectionError):
         parse_direction("en:en")
+
+
+def test_validate_tag_name_normalizes_value() -> None:
+    assert validate_tag_name(" Spoken_Word ") == "spoken_word"
+
+
+def test_validate_tag_name_rejects_invalid_characters() -> None:
+    with pytest.raises(ValueError, match="letters, digits, hyphens, and underscores"):
+        validate_tag_name("spoken word")
+
+
+def test_normalize_tags_sorts_and_deduplicates() -> None:
+    assert normalize_tags([" spoken", "common", "spoken"]) == ["common", "spoken"]
 
 
 def test_create_word_manually_persists_word_and_options(db_session) -> None:
