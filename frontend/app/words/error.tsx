@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 
+import { Button, buttonClassName } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
 type WordsErrorProps = {
   error: Error & { digest?: string };
   reset: () => void;
@@ -11,7 +14,7 @@ export default function WordsError({ error, reset }: WordsErrorProps) {
   return (
     <main className="page-shell">
       <section className="page-section page-section--narrow">
-        <div className="panel stack-md">
+        <Card className="stack-md">
           <div className="section-heading">
             <p className="eyebrow">Dictionary error</p>
             <h1>We could not load this dictionary view.</h1>
@@ -26,17 +29,17 @@ export default function WordsError({ error, reset }: WordsErrorProps) {
           </div>
 
           <div className="actions-row">
-            <button className="button button--primary" type="button" onClick={() => reset()}>
+            <Button variant="primary" type="button" onClick={() => reset()}>
               Try again
-            </button>
-            <Link className="button" href="/words">
+            </Button>
+            <Link className={buttonClassName()} href="/words">
               Back to catalog
             </Link>
-            <Link className="button" href="/">
+            <Link className={buttonClassName()} href="/">
               Back to search
             </Link>
           </div>
-        </div>
+        </Card>
       </section>
     </main>
   );

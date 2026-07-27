@@ -1,10 +1,13 @@
 import Link from "next/link";
 
+import { buttonClassName } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
 export default function WordNotFound() {
   return (
     <main className="page-shell">
       <section className="page-section page-section--narrow">
-        <div className="panel stack-md">
+        <Card className="stack-md">
           <div className="section-heading">
             <p className="eyebrow">Word not found</p>
             <h1>This dictionary entry does not exist.</h1>
@@ -15,17 +18,17 @@ export default function WordNotFound() {
           </div>
 
           <div className="actions-row">
-            <Link className="button button--primary" href="/">
+            <Link className={buttonClassName("primary")} href="/">
               Search again
             </Link>
-            <Link className="button" href="/words">
+            <Link className={buttonClassName()} href="/words">
               Open catalog
             </Link>
-            <Link className="button" href="/words/new">
+            <Link className={buttonClassName()} href="/words/new">
               Add word manually
             </Link>
           </div>
-        </div>
+        </Card>
       </section>
     </main>
   );

@@ -10,7 +10,7 @@ type WordsListProps = {
 export function WordsList({ words }: WordsListProps) {
   if (words.length === 0) {
     return (
-      <div className="empty-state">
+      <div className="empty-state" aria-live="polite">
         <h2>No words found</h2>
         <p>Adjust filters, try another search term, or add a word manually.</p>
       </div>
