@@ -453,6 +453,11 @@ a {
   padding: 14px 16px;
 }
 
+.empty-state--compact .field-label {
+  display: block;
+  margin-bottom: 8px;
+}
+
 .actions-row {
   display: flex;
   flex-wrap: wrap;

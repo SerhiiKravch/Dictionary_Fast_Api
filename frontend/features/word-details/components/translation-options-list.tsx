@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { StatePanel } from "@/components/ui/state-panel";
 import type { TranslationOptionRead } from "@/types/word";
 
 type TranslationOptionsListProps = {
@@ -15,7 +16,11 @@ export function TranslationOptionsList({ options }: TranslationOptionsListProps)
       </div>
 
       {options.length === 0 ? (
-        <p className="supporting-text">No additional translation options available yet.</p>
+        <StatePanel
+          eyebrow="No alternatives yet"
+          title="Only the primary translation is available."
+          description="Additional meanings, usage notes, and part-of-speech hints have not been saved for this word yet."
+        />
       ) : (
         <div className="stack-sm">
           {options.map((option) => (
@@ -27,7 +32,16 @@ export function TranslationOptionsList({ options }: TranslationOptionsListProps)
                   <Badge tone="muted">Priority {option.priority}</Badge>
                 </div>
               </div>
-              {option.usage_note ? <p className="supporting-text">{option.usage_note}</p> : null}
+              {option.usage_note ? (
+                <p className="supporting-text">{option.usage_note}</p>
+              ) : (
+                <div className="empty-state empty-state--compact" aria-live="polite">
+                  <span className="field-label">Usage note</span>
+                  <p className="supporting-text">
+                    No extra note was added for this translation option.
+                  </p>
+                </div>
+              )}
             </article>
           ))}
         </div>
