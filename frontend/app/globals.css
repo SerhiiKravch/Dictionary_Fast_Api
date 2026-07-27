@@ -379,6 +379,24 @@ a {
   margin: 0 0 4px;
 }
 
+.state-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.state-panel h2 {
+  margin: 0;
+}
+
+.state-panel .eyebrow {
+  margin: 0;
+}
+
+.state-panel--error {
+  border-color: rgba(156, 47, 47, 0.18);
+  background: linear-gradient(180deg, rgba(156, 47, 47, 0.04), var(--surface-strong));
+}
+
 .catalog-card__transcription,
 .catalog-card__context,
 .supporting-text {
