@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
 import type { WordRead } from "@/types/word";
 
 type WordsListProps = {
@@ -21,9 +22,9 @@ export function WordsList({ words }: WordsListProps) {
       {words.map((word) => (
         <article key={word.id} className="catalog-card">
           <div className="catalog-card__meta">
-            <span className="badge">{word.source_language.toUpperCase()}</span>
-            <span className="badge">{word.target_language.toUpperCase()}</span>
-            <span className="badge badge--muted">{word.origin}</span>
+            <Badge>{word.source_language.toUpperCase()}</Badge>
+            <Badge>{word.target_language.toUpperCase()}</Badge>
+            <Badge tone="muted">{word.origin}</Badge>
           </div>
 
           <div className="catalog-card__content">

@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { WordRead } from "@/types/word";
 
 type WordDetailsCardProps = {
@@ -14,12 +16,12 @@ function formatDate(value: string) {
 
 export function WordDetailsCard({ word }: WordDetailsCardProps) {
   return (
-    <article className="panel stack-md">
+    <Card as="article" className="stack-md">
       <div className="stack-sm">
         <div className="inline-badges">
-          <span className="badge">{word.source_language.toUpperCase()}</span>
-          <span className="badge">{word.target_language.toUpperCase()}</span>
-          <span className="badge badge--muted">{word.origin}</span>
+          <Badge>{word.source_language.toUpperCase()}</Badge>
+          <Badge>{word.target_language.toUpperCase()}</Badge>
+          <Badge tone="muted">{word.origin}</Badge>
         </div>
         <h1 className="hero-title">{word.source_word}</h1>
         <p className="supporting-text">{word.transcription}</p>
@@ -45,6 +47,6 @@ export function WordDetailsCard({ word }: WordDetailsCardProps) {
           <dd>{formatDate(word.updated_at)}</dd>
         </div>
       </dl>
-    </article>
+    </Card>
   );
 }

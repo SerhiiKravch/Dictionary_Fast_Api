@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { ApiClientError } from "@/services/api-client";
 import { getAutocomplete, lookupWord } from "@/services/words";
 import type { LookupDirection } from "@/types/word";
@@ -122,31 +126,34 @@ export function DictionarySearchForm() {
   }
 
   return (
-    <form className="panel stack-md" onSubmit={handleSubmit}>
-      <div className="stack-sm">
-        <label className="field-label" htmlFor="dictionary-search">
-          Search word
-        </label>
-        <input
-          id="dictionary-search"
-          className="text-input"
-          type="text"
-          value={query}
-          onChange={(event) => {
-            const nextValue = event.target.value;
-            setQuery(nextValue);
+    <form onSubmit={handleSubmit}>
+      <Card className="stack-md">
+        <Field
+          label="Search word"
+          htmlFor="dictionary-search"
+          error={errorMessage || undefined}
+          hint="Type an English or Ukrainian word and use arrows to navigate suggestions."
+        >
+          <Input
+            type="text"
+            value={query}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setQuery(nextValue);
 
-            if (!nextValue.trim()) {
-              setSuggestions([]);
-              setActiveIndex(-1);
-            }
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Type apple or кіт"
-          autoComplete="off"
-          aria-autocomplete="list"
-          aria-controls="dictionary-search-suggestions"
-        />
+              if (!nextValue.trim()) {
+                setSuggestions([]);
+                setActiveIndex(-1);
+              }
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Type apple or кіт"
+            autoComplete="off"
+            aria-autocomplete="list"
+            aria-controls="dictionary-search-suggestions"
+            invalid={Boolean(errorMessage)}
+          />
+        </Field>
         <AutocompleteDropdown
           suggestions={suggestions}
           isLoading={isAutocompleteLoading}
@@ -154,15 +161,13 @@ export function DictionarySearchForm() {
           query={query}
           onSelect={handleSuggestionSelect}
         />
-      </div>
 
-      <DirectionSwitcher value={direction} onChange={setDirection} />
+        <DirectionSwitcher value={direction} onChange={setDirection} />
 
-      {errorMessage ? <p className="message message--error">{errorMessage}</p> : null}
-
-      <button className="button button--primary" type="submit" disabled={isLoading}>
-        {isLoading ? "Looking up..." : "Find translation"}
-      </button>
+        <Button variant="primary" type="submit" disabled={isLoading}>
+          {isLoading ? "Looking up..." : "Find translation"}
+        </Button>
+      </Card>
     </form>
   );
 }

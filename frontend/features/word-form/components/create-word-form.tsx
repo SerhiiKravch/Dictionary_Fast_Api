@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiClientError } from "@/services/api-client";
 import { createWord } from "@/services/words";
 import type { LanguageCode, PartOfSpeech, TranslationOptionCreate, WordOrigin } from "@/types/word";
@@ -150,7 +156,8 @@ export function CreateWordForm() {
   }
 
   return (
-    <form className="panel stack-md" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit}>
+      <Card className="stack-md">
       {Object.keys(validationErrors).length > 0 ? (
         <div className="message message--error" role="alert">
           <strong>Fix the highlighted fields before submitting.</strong>
@@ -158,39 +165,32 @@ export function CreateWordForm() {
       ) : null}
 
       <div className="form-grid">
-        <Field label="Source word">
-          <input
-            className={validationErrors.sourceWord ? "text-input is-invalid" : "text-input"}
+        <Field label="Source word" htmlFor="source-word" error={validationErrors.sourceWord}>
+          <Input
             value={sourceWord}
             onChange={(event) => {
               setSourceWord(event.target.value);
               setValidationErrors((current) => ({ ...current, sourceWord: undefined }));
             }}
+            invalid={Boolean(validationErrors.sourceWord)}
             required
           />
-          {validationErrors.sourceWord ? (
-            <p className="field-error">{validationErrors.sourceWord}</p>
-          ) : null}
         </Field>
 
-        <Field label="Transcription">
-          <input
-            className={validationErrors.transcription ? "text-input is-invalid" : "text-input"}
+        <Field label="Transcription" htmlFor="transcription" error={validationErrors.transcription}>
+          <Input
             value={transcription}
             onChange={(event) => {
               setTranscription(event.target.value);
               setValidationErrors((current) => ({ ...current, transcription: undefined }));
             }}
+            invalid={Boolean(validationErrors.transcription)}
             required
           />
-          {validationErrors.transcription ? (
-            <p className="field-error">{validationErrors.transcription}</p>
-          ) : null}
         </Field>
 
-        <Field label="Source language">
-          <select
-            className="select-input"
+        <Field label="Source language" htmlFor="source-language">
+          <Select
             value={sourceLanguage}
             onChange={(event) => {
               setSourceLanguage(event.target.value as LanguageCode);
@@ -199,68 +199,66 @@ export function CreateWordForm() {
           >
             <option value="en">English</option>
             <option value="uk">Ukrainian</option>
-          </select>
+          </Select>
         </Field>
 
-        <Field label="Target language">
-          <select
-            className={validationErrors.direction ? "select-input is-invalid" : "select-input"}
+        <Field label="Target language" htmlFor="target-language" error={validationErrors.direction}>
+          <Select
             value={targetLanguage}
             onChange={(event) => {
               setTargetLanguage(event.target.value as LanguageCode);
               setValidationErrors((current) => ({ ...current, direction: undefined }));
             }}
+            invalid={Boolean(validationErrors.direction)}
           >
             <option value="uk">Ukrainian</option>
             <option value="en">English</option>
-          </select>
-          {validationErrors.direction ? (
-            <p className="field-error">{validationErrors.direction}</p>
-          ) : null}
+          </Select>
         </Field>
 
-        <Field label="Primary translation">
-          <input
-            className={validationErrors.primaryTranslation ? "text-input is-invalid" : "text-input"}
+        <Field
+          label="Primary translation"
+          htmlFor="primary-translation"
+          error={validationErrors.primaryTranslation}
+        >
+          <Input
             value={primaryTranslation}
             onChange={(event) => {
               setPrimaryTranslation(event.target.value);
               setValidationErrors((current) => ({ ...current, primaryTranslation: undefined }));
             }}
+            invalid={Boolean(validationErrors.primaryTranslation)}
             required
           />
-          {validationErrors.primaryTranslation ? (
-            <p className="field-error">{validationErrors.primaryTranslation}</p>
-          ) : null}
         </Field>
 
-        <Field label="Origin">
-          <select
-            className="select-input"
+        <Field label="Origin" htmlFor="origin">
+          <Select
             value={origin}
             onChange={(event) => setOrigin(event.target.value as WordOrigin)}
           >
             <option value="manual">Manual</option>
             <option value="openai">OpenAI</option>
             <option value="imported">Imported</option>
-          </select>
+          </Select>
         </Field>
       </div>
 
-      <Field label="Context sentence">
-        <textarea
-          className={validationErrors.contextSentence ? "textarea-input is-invalid" : "textarea-input"}
+      <Field
+        label="Context sentence"
+        htmlFor="context-sentence"
+        error={validationErrors.contextSentence}
+      >
+        <Textarea
           value={contextSentence}
           onChange={(event) => {
             setContextSentence(event.target.value);
             setValidationErrors((current) => ({ ...current, contextSentence: undefined }));
           }}
+          invalid={Boolean(validationErrors.contextSentence)}
           rows={4}
           required
         />
-        {validationErrors.contextSentence ? (
-          <p className="field-error">{validationErrors.contextSentence}</p>
-        ) : null}
       </Field>
 
       <div className="stack-sm">
@@ -272,26 +270,24 @@ export function CreateWordForm() {
               main translation.
             </p>
           </div>
-          <button className="button" type="button" onClick={addOption}>
+          <Button type="button" onClick={addOption}>
             Add option
-          </button>
+          </Button>
         </div>
 
         <div className="stack-sm">
           {translationOptions.map((option) => (
             <div key={option.id} className="option-editor">
               <div className="form-grid">
-                <Field label="Text">
-                  <input
-                    className="text-input"
+                <Field label="Text" htmlFor={`option-text-${option.id}`}>
+                  <Input
                     value={option.text}
                     onChange={(event) => updateOption(option.id, { text: event.target.value })}
                   />
                 </Field>
 
-                <Field label="Part of speech">
-                  <select
-                    className="select-input"
+                <Field label="Part of speech" htmlFor={`option-pos-${option.id}`}>
+                  <Select
                     value={option.part_of_speech}
                     onChange={(event) =>
                       updateOption(option.id, {
@@ -309,12 +305,11 @@ export function CreateWordForm() {
                     <option value="interjection">interjection</option>
                     <option value="phrase">phrase</option>
                     <option value="other">other</option>
-                  </select>
+                  </Select>
                 </Field>
 
-                <Field label="Priority">
-                  <input
-                    className="text-input"
+                <Field label="Priority" htmlFor={`option-priority-${option.id}`}>
+                  <Input
                     type="number"
                     min={1}
                     value={option.priority}
@@ -325,9 +320,8 @@ export function CreateWordForm() {
                 </Field>
               </div>
 
-              <Field label="Usage note">
-                <textarea
-                  className="textarea-input"
+              <Field label="Usage note" htmlFor={`option-note-${option.id}`}>
+                <Textarea
                   rows={2}
                   value={option.usage_note}
                   onChange={(event) => updateOption(option.id, { usage_note: event.target.value })}
@@ -335,9 +329,9 @@ export function CreateWordForm() {
               </Field>
 
               {translationOptions.length > 1 ? (
-                <button className="button" type="button" onClick={() => removeOption(option.id)}>
+                <Button type="button" onClick={() => removeOption(option.id)}>
                   Remove option
-                </button>
+                </Button>
               ) : null}
             </div>
           ))}
@@ -349,23 +343,10 @@ export function CreateWordForm() {
 
       {errorMessage ? <p className="message message--error">{errorMessage}</p> : null}
 
-      <button className="button button--primary" type="submit" disabled={isSubmitting}>
+      <Button variant="primary" type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Creating..." : "Create word"}
-      </button>
+      </Button>
+      </Card>
     </form>
-  );
-}
-
-type FieldProps = Readonly<{
-  label: string;
-  children: React.ReactNode;
-}>;
-
-function Field({ label, children }: FieldProps) {
-  return (
-    <label className="stack-sm">
-      <span className="field-label">{label}</span>
-      {children}
-    </label>
   );
 }

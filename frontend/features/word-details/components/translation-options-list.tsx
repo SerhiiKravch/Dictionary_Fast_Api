@@ -1,3 +1,5 @@
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { TranslationOptionRead } from "@/types/word";
 
 type TranslationOptionsListProps = {
@@ -6,7 +8,7 @@ type TranslationOptionsListProps = {
 
 export function TranslationOptionsList({ options }: TranslationOptionsListProps) {
   return (
-    <section className="panel stack-md">
+    <Card as="section" className="stack-md">
       <div className="section-heading section-heading--compact">
         <h2>Translation options</h2>
         <p>Alternative meanings, parts of speech, and notes returned by the backend.</p>
@@ -21,8 +23,8 @@ export function TranslationOptionsList({ options }: TranslationOptionsListProps)
               <div className="option-card__header">
                 <strong>{option.text}</strong>
                 <div className="inline-badges">
-                  <span className="badge badge--muted">{option.part_of_speech}</span>
-                  <span className="badge badge--muted">Priority {option.priority}</span>
+                  <Badge tone="muted">{option.part_of_speech}</Badge>
+                  <Badge tone="muted">Priority {option.priority}</Badge>
                 </div>
               </div>
               {option.usage_note ? <p className="supporting-text">{option.usage_note}</p> : null}
@@ -30,6 +32,6 @@ export function TranslationOptionsList({ options }: TranslationOptionsListProps)
           ))}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
