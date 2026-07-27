@@ -8,7 +8,9 @@
     "start": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"console.log('No frontend tests configured yet.')\""
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "next": "^16.2.11",
@@ -16,11 +18,17 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitest/ui": "^4.1.10",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.11",
-    "typescript": "^6.0.3"
+    "happy-dom": "^20.0.10",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
