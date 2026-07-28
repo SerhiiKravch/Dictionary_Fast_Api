@@ -1,14 +1,7 @@
 # Frontend
 
-Next.js frontend scaffold for the dictionary project.
-
-This package is intentionally initialized with infrastructure first:
-
-- App Router baseline
-- TypeScript configuration
-- ESLint setup
-- Docker support
-- shared folder structure for future features
+Next.js frontend for the dictionary project with a search-first UX, typed FastAPI integration,
+shared UI primitives, route-level fallbacks, and frontend test coverage.
 
 ## Stack
 
@@ -16,20 +9,31 @@ This package is intentionally initialized with infrastructure first:
 - React
 - TypeScript
 - ESLint
+- Vitest
+- Testing Library
+- Zod
 
 ## Structure
 
 ```text
 frontend/
-  app/          Next.js App Router entrypoints
-  components/   reusable UI components
-  features/     feature-level modules
+  app/          App Router routes, layouts, loading and error states
+  components/   shared UI primitives
+  features/     feature-level modules and tests
   hooks/        custom React hooks
   lib/          env helpers and shared utilities
   public/       static assets
-  services/     API client layer
-  types/        shared TypeScript types
+  services/     API client layer and service tests
+  test/         shared frontend test setup
+  types/        TypeScript types and Zod schemas
 ```
+
+## Route Map
+
+- `/` search-first home with autocomplete and dictionary lookup
+- `/words` catalog with URL-driven filters, pagination, and inline states
+- `/words/[slug]` detail page with metadata, translation options, and fallback states
+- `/words/new` manual creation flow with client-side validation and submit handling
 
 ## Environment
 
@@ -67,6 +71,26 @@ Default local URL:
 http://127.0.0.1:3000
 ```
 
+## API Contract Layer
+
+Frontend requests are centralized in `services/api-client.ts`.
+
+- successful API responses are validated with Zod schemas
+- backend errors are normalized by `error_code`
+- typed dictionary services live in `services/words.ts`
+
+This keeps fetch logic out of UI components and makes frontend/backend contract drift easier to
+catch during development.
+
+## UX Coverage
+
+The current frontend includes:
+
+- shared UI primitives for buttons, inputs, cards, fields, badges, and state panels
+- route-level `loading.tsx`, `error.tsx`, and `not-found.tsx` coverage for key routes
+- inline empty, error, and validation states for catalog, details, search, and manual create flows
+- keyboard-aware autocomplete and URL-driven catalog filters
+
 ## Quality Checks
 
 ```bash
@@ -77,7 +101,14 @@ npm run build
 npm run test
 ```
 
-`npm run test` is currently a placeholder so the frontend package already exposes a stable testing entrypoint before a real test runner is introduced.
+Current test coverage includes:
+
+- API client contract handling
+- dictionary service calls
+- search form and autocomplete interactions
+- create word form validation and submit flows
+- catalog filters and pagination
+- word detail rendering states
 
 ## Git Hooks
 
@@ -85,6 +116,7 @@ Frontend checks are enforced through the repository root `pre-commit` configurat
 
 - `npm --prefix frontend run lint`
 - `npm --prefix frontend run typecheck`
+- `npm --prefix frontend run test`
 
 `lint-staged` is intentionally not added at this stage to keep the monorepo hook setup centralized in one place.
 
@@ -95,3 +127,6 @@ Run the frontend with Docker Compose from the repository root:
 ```bash
 docker compose up --build frontend
 ```
+
+The current Dockerfile is development-oriented and runs the Next.js dev server inside the compose
+setup.
