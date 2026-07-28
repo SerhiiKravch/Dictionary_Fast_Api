@@ -2,12 +2,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
+from app.models.enums import LanguageCode, LookupDirection, PartOfSpeech, WordOrigin
 
 
 class WordLookupRequest(BaseModel):
     word: str = Field(min_length=1, max_length=128)
-    direction: str = "en:uk"
+    direction: LookupDirection = LookupDirection.ENGLISH_TO_UKRAINIAN
 
 
 class AutocompleteItem(BaseModel):
