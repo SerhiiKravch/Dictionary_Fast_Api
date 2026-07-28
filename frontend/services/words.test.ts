@@ -29,6 +29,7 @@ describe("words service", () => {
     expect(requestMock).toHaveBeenCalledWith("/lookup", {
       method: "POST",
       body: { word: "hello", direction: "en:uk" },
+      schema: expect.anything(),
     });
   });
 
@@ -41,6 +42,7 @@ describe("words service", () => {
 
     expect(requestMock).toHaveBeenCalledWith("/api/words", {
       query: params,
+      schema: expect.anything(),
     });
   });
 
@@ -61,13 +63,21 @@ describe("words service", () => {
     await createWord(payload);
     await getAutocomplete("hel");
 
-    expect(requestMock).toHaveBeenNthCalledWith(1, "/api/words/hello");
+    expect(requestMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/words/hello",
+      expect.objectContaining({
+        schema: expect.anything(),
+      }),
+    );
     expect(requestMock).toHaveBeenNthCalledWith(2, "/api/words", {
       method: "POST",
       body: payload,
+      schema: expect.anything(),
     });
     expect(requestMock).toHaveBeenNthCalledWith(3, "/api/autocomplete", {
       query: { q: "hel" },
+      schema: expect.anything(),
     });
   });
 });

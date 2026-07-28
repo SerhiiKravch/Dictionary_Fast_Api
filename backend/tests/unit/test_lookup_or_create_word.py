@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.enums import LanguageCode
+from app.models.enums import LanguageCode, LookupDirection
 from app.schemas.word import WordLookupRequest
 from app.services import dictionary
 from app.services.dictionary import create_word_manually, lookup_or_create_word
@@ -13,7 +13,7 @@ pytestmark = pytest.mark.unit
 def test_lookup_or_create_word_creates_when_missing(db_session, monkeypatch) -> None:
     monkeypatch.setattr(dictionary, "OpenAIService", FakeOpenAIService)
 
-    payload = WordLookupRequest(word="test", direction="en:uk")
+    payload = WordLookupRequest(word="test", direction=LookupDirection.ENGLISH_TO_UKRAINIAN)
     word = dictionary.lookup_or_create_word(db_session, payload)
 
     assert word.source_word == "test"
@@ -38,7 +38,10 @@ def test_lookup_or_create_word_returns_existing_without_openai(
 
     monkeypatch.setattr(dictionary, "OpenAIService", FailingOpenAIService)
 
-    lookup_payload = WordLookupRequest(word="apple", direction="en:uk")
+    lookup_payload = WordLookupRequest(
+        word="apple",
+        direction=LookupDirection.ENGLISH_TO_UKRAINIAN,
+    )
     result = lookup_or_create_word(db=db_session, payload=lookup_payload)
 
     assert result.id == created_word.id

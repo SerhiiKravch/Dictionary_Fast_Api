@@ -1,84 +1,44 @@
-export type LanguageCode = "en" | "uk";
+import type { z } from "zod";
 
-export type LookupDirection = "en:uk" | "uk:en";
+import type {
+  autocompleteResponseSchema,
+  backendValidationErrorSchema,
+  errorResponseSchema,
+  languageCodeSchema,
+  lookupDirectionSchema,
+  partOfSpeechSchema,
+  translationOptionCreateSchema,
+  translationOptionReadSchema,
+  wordCreateSchema,
+  wordListResponseSchema,
+  wordLookupRequestSchema,
+  wordOriginSchema,
+  wordReadSchema,
+} from "./word.schemas";
 
-export type WordOrigin = "manual" | "openai" | "imported";
+export type LanguageCode = z.infer<typeof languageCodeSchema>;
 
-export type PartOfSpeech =
-  | "noun"
-  | "verb"
-  | "adjective"
-  | "adverb"
-  | "pronoun"
-  | "preposition"
-  | "conjunction"
-  | "interjection"
-  | "phrase"
-  | "other";
+export type LookupDirection = z.infer<typeof lookupDirectionSchema>;
 
-export type TranslationOptionRead = {
-  id: number;
-  text: string;
-  part_of_speech: PartOfSpeech;
-  priority: number;
-  usage_note: string;
-};
+export type WordOrigin = z.infer<typeof wordOriginSchema>;
 
-export type TranslationOptionCreate = {
-  text: string;
-  part_of_speech?: PartOfSpeech;
-  priority?: number;
-  usage_note?: string;
-};
+export type PartOfSpeech = z.infer<typeof partOfSpeechSchema>;
 
-export type WordRead = {
-  id: number;
-  source_word: string;
-  source_language: LanguageCode;
-  target_language: LanguageCode;
-  slug: string;
-  transcription: string;
-  primary_translation: string;
-  context_sentence: string;
-  origin: WordOrigin;
-  created_at: string;
-  updated_at: string;
-  translation_options: TranslationOptionRead[];
-};
+export type TranslationOptionRead = z.infer<typeof translationOptionReadSchema>;
 
-export type WordCreate = {
-  source_word: string;
-  source_language: LanguageCode;
-  target_language: LanguageCode;
-  transcription: string;
-  primary_translation: string;
-  context_sentence: string;
-  origin?: WordOrigin;
-  translation_options?: TranslationOptionCreate[];
-};
+export type TranslationOptionCreate = z.infer<typeof translationOptionCreateSchema>;
 
-export type WordLookupRequest = {
-  word: string;
-  direction: LookupDirection;
-};
+export type WordRead = z.infer<typeof wordReadSchema>;
 
-export type WordListResponse = {
-  items: WordRead[];
-  total: number;
-  limit: number;
-  offset: number;
-};
+export type WordCreate = z.infer<typeof wordCreateSchema>;
 
-export type AutocompleteResponse = {
-  results: string[];
-};
+export type WordLookupRequest = z.infer<typeof wordLookupRequestSchema>;
 
-export type BackendValidationError = {
-  type: string;
-  loc: Array<string | number>;
-  msg: string;
-  input?: unknown;
-};
+export type WordListResponse = z.infer<typeof wordListResponseSchema>;
+
+export type AutocompleteResponse = z.infer<typeof autocompleteResponseSchema>;
+
+export type BackendValidationError = z.infer<typeof backendValidationErrorSchema>;
 
 export type ErrorCode =
   | "application_error"
@@ -95,11 +55,7 @@ export type ErrorCode =
   | "word_not_found"
   | "unknown_error";
 
-export type ErrorResponse = {
-  detail: string;
-  error_code: ErrorCode | string;
-  errors: BackendValidationError[];
-};
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
 
 export type WordsQueryParams = {
   limit?: number;

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
-import { ApiClientError, normalizeApiError, request } from "./api-client";
+import { ApiClientError, ApiContractError, normalizeApiError, request } from "./api-client";
 
 describe("request", () => {
   afterEach(() => {
@@ -85,6 +86,26 @@ describe("request", () => {
       status: 200,
       errorCode: "unknown_error",
     });
+  });
+
+  it("throws ApiContractError when the JSON payload breaks the expected schema", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ ok: "yes" }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    await expect(
+      request("/api/words", {
+        schema: z.object({
+          ok: z.boolean(),
+        }),
+      }),
+    ).rejects.toBeInstanceOf(ApiContractError);
   });
 });
 

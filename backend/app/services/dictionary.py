@@ -12,7 +12,7 @@ from app.exceptions.dictionary import (
     WordAlreadyExistsError,
     WordNotFoundError,
 )
-from app.models.enums import LanguageCode, WordOrigin
+from app.models.enums import LanguageCode, LookupDirection, WordOrigin
 from app.models.word import TranslationOption, Word
 from app.schemas.word import (
     GeneratedTranslationOption,
@@ -42,9 +42,10 @@ def validate_language_direction(
         raise SameLanguageDirectionError("Source and target languages must be different.")
 
 
-def parse_direction(direction: str) -> tuple[LanguageCode, LanguageCode]:
+def parse_direction(direction: LookupDirection | str) -> tuple[LanguageCode, LanguageCode]:
     try:
-        source, target = direction.split(":")
+        raw_direction = direction.value if isinstance(direction, LookupDirection) else direction
+        source, target = raw_direction.split(":")
         source_language = LanguageCode(source)
         target_language = LanguageCode(target)
         validate_language_direction(source_language, target_language)

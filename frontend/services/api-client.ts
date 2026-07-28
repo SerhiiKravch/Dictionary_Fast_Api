@@ -1,15 +1,19 @@
 import { getApiBaseUrl } from "@/lib/env";
 import type { ErrorCode, ErrorResponse } from "@/types/word";
+import { errorResponseSchema } from "@/types/word.schemas";
+import { z } from "zod";
 
 type PrimitiveQueryValue = string | number | boolean | null | undefined;
+type AnySchema = z.ZodTypeAny;
 
-export type ApiRequestOptions = {
+export type ApiRequestOptions<TSchema extends AnySchema = AnySchema> = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   query?: Record<string, PrimitiveQueryValue>;
   cache?: RequestCache;
   next?: NextFetchRequestConfig;
   headers?: HeadersInit;
+  schema?: TSchema;
 };
 
 const ERROR_MESSAGES: Record<ErrorCode, string> = {
@@ -44,6 +48,27 @@ export class ApiClientError extends Error {
     this.status = params.status;
     this.errorCode = params.errorCode;
     this.details = params.details;
+  }
+}
+
+export class ApiContractError extends ApiClientError {
+  issues: z.ZodIssue[];
+  payload: unknown;
+
+  constructor(params: {
+    status: number;
+    payload: unknown;
+    issues: z.ZodIssue[];
+  }) {
+    super({
+      message: "API response did not match the expected contract.",
+      status: params.status,
+      errorCode: "unknown_error",
+      details: null,
+    });
+    this.name = "ApiContractError";
+    this.issues = params.issues;
+    this.payload = params.payload;
   }
 }
 
@@ -91,7 +116,18 @@ export function normalizeApiError(status: number, error: ErrorResponse | null) {
   });
 }
 
-export async function request<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+export async function request<TSchema extends AnySchema>(
+  path: string,
+  options: ApiRequestOptions<TSchema> & { schema: TSchema },
+): Promise<z.infer<TSchema>>;
+export async function request<T>(
+  path: string,
+  options?: ApiRequestOptions,
+): Promise<T>;
+export async function request<T>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<T> {
   const response = await fetch(buildUrl(path, options.query), {
     method: options.method ?? "GET",
     headers: {
@@ -104,11 +140,12 @@ export async function request<T>(path: string, options: ApiRequestOptions = {}):
   });
 
   if (!response.ok) {
-    const error = await parseJsonSafely<ErrorResponse>(response);
-    throw normalizeApiError(response.status, error);
+    const errorPayload = await parseJsonSafely<unknown>(response);
+    const parsedError = errorResponseSchema.safeParse(errorPayload);
+    throw normalizeApiError(response.status, parsedError.success ? parsedError.data : null);
   }
 
-  const data = await parseJsonSafely<T>(response);
+  const data = await parseJsonSafely<unknown>(response);
 
   if (data === null) {
     throw new ApiClientError({
@@ -119,5 +156,19 @@ export async function request<T>(path: string, options: ApiRequestOptions = {}):
     });
   }
 
-  return data;
+  if (options.schema) {
+    const parsed = options.schema.safeParse(data);
+
+    if (!parsed.success) {
+      throw new ApiContractError({
+        status: response.status,
+        payload: data,
+        issues: parsed.error.issues,
+      });
+    }
+
+    return parsed.data as T;
+  }
+
+  return data as T;
 }
