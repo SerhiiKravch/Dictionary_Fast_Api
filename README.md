@@ -6,7 +6,7 @@ Repository layout for the English-Ukrainian dictionary project.
 
 ```text
 backend/   FastAPI API, migrations, tests, Python tooling
-frontend/  Reserved for the Next.js application
+frontend/  Next.js frontend scaffold and future UI application
 docs/      Shared project documentation
 ```
 
@@ -21,7 +21,7 @@ Key backend locations:
 
 ## Frontend
 
-`frontend/` is intentionally reserved for the upcoming `React + Next.js` application so the repository can evolve as a clean monorepo instead of mixing Python and Node tooling in the root.
+`frontend/` now contains the initialized `React + Next.js` scaffold so the repository can evolve as a clean monorepo without mixing Python and Node tooling in the root.
 
 ## Local Development
 
@@ -36,6 +36,14 @@ Docker Compose from the repository root:
 
 ```bash
 docker compose up --build
+```
+
+Frontend only:
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 Test infrastructure from the repository root:

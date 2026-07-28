@@ -1,4 +1,20 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - web
+    environment:
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+      INTERNAL_API_URL: http://web:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -28,7 +44,9 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - backend_venv:/app/.venv
     command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 volumes:
+  backend_venv:
   postgres_data:

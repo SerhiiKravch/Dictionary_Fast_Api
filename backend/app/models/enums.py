@@ -6,6 +6,11 @@ class LanguageCode(StrEnum):
     UKRAINIAN = "uk"
 
 
+class LookupDirection(StrEnum):
+    ENGLISH_TO_UKRAINIAN = "en:uk"
+    UKRAINIAN_TO_ENGLISH = "uk:en"
+
+
 class WordOrigin(StrEnum):
     MANUAL = "manual"
     OPENAI = "openai"
