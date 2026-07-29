@@ -13,14 +13,23 @@ from app.exceptions.dictionary import (
     WordNotFoundError,
 )
 from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
-from app.models.word import ExampleSentence, Tag, TranslationOption, Word, WordInflection, WordSense
+from app.models.word import (
+    ExampleSentence,
+    Tag,
+    TranslationOption,
+    Word,
+    WordInflection,
+    WordSense,
+)
 from app.schemas.word import (
+    ExampleSentenceCreate,
     GeneratedTranslationOption,
     GeneratedWordPayload,
     TranslationOptionCreate,
     WordCreate,
     WordInflectionCreate,
     WordLookupRequest,
+    WordSenseCreate,
 )
 from app.services.openai_service import OpenAIService
 from app.services.word_metadata_service import get_or_create_tags
@@ -28,6 +37,8 @@ from app.utils.slug import build_base_slug, build_slug_with_suffix, generate_slu
 
 TranslationOptionInput = GeneratedTranslationOption | TranslationOptionCreate
 WordInflectionInput = WordInflectionCreate
+WordSenseInput = WordSenseCreate
+ExampleSentenceInput = ExampleSentenceCreate
 
 
 def normalize_word(word: str) -> str:
@@ -122,6 +133,7 @@ def persist_word_with_options(
     origin: WordOrigin,
     tags: Sequence[str],
     inflections: Sequence[WordInflectionInput],
+    senses: Sequence[WordSenseInput],
     translation_options: Sequence[TranslationOptionInput],
 ) -> Word:
     base_slug = build_base_slug(
@@ -179,25 +191,7 @@ def persist_word_with_options(
                     )
                 )
 
-            part_of_speech = derive_primary_part_of_speech(translation_options)
-            sense = WordSense(
-                word_id=word.id,
-                part_of_speech=part_of_speech,
-                primary_translation=primary_translation,
-                definition="",
-                position=1,
-            )
-            db.add(sense)
-            db.flush()
-
-            db.add(
-                ExampleSentence(
-                    sense_id=sense.id,
-                    source_text=context_sentence,
-                    translated_text="",
-                    position=1,
-                )
-            )
+            persist_word_senses(db, word.id, senses, translation_options)
 
             db.commit()
             return get_word_by_slug(db, slug)
@@ -245,6 +239,7 @@ def create_word_with_options(
         origin=payload.origin,
         tags=payload.tags,
         inflections=payload.inflections,
+        senses=payload.senses,
         translation_options=payload.translation_options,
     )
 
@@ -277,6 +272,7 @@ def create_word_manually(db: Session, payload: WordCreate) -> Word:
         origin=payload.origin,
         tags=payload.tags,
         inflections=payload.inflections,
+        senses=payload.senses,
         translation_options=payload.translation_options,
     )
 
@@ -310,6 +306,66 @@ def derive_primary_part_of_speech(
         key=lambda item: (item[1].priority, item[0]),
     )[1]
     return primary_option.part_of_speech.value
+
+
+def persist_word_senses(
+    db: Session,
+    word_id: int,
+    senses: Sequence[WordSenseInput],
+    translation_options: Sequence[TranslationOptionInput],
+) -> None:
+    fallback_part_of_speech = derive_primary_part_of_speech(translation_options)
+    use_legacy_fallback = (
+        len(senses) == 1 and translation_options and senses[0].part_of_speech == PartOfSpeech.OTHER
+    )
+
+    for index, sense_input in enumerate(sorted(senses, key=lambda item: item.position), start=1):
+        sense = WordSense(
+            word_id=word_id,
+            part_of_speech=(
+                fallback_part_of_speech if use_legacy_fallback else sense_input.part_of_speech.value
+            ),
+            primary_translation=sense_input.primary_translation,
+            definition=sense_input.definition,
+            position=sense_input.position or index,
+        )
+        db.add(sense)
+        db.flush()
+
+        persist_example_sentences(
+            db,
+            sense.id,
+            sense_input.example_sentences,
+            fallback_text=sense_input.primary_translation,
+        )
+
+
+def persist_example_sentences(
+    db: Session,
+    sense_id: int,
+    example_sentences: Sequence[ExampleSentenceInput],
+    *,
+    fallback_text: str,
+) -> None:
+    normalized_examples = sorted(example_sentences, key=lambda item: item.position)
+    if not normalized_examples:
+        normalized_examples = [
+            ExampleSentenceCreate(
+                source_text=fallback_text,
+                translated_text="",
+                position=1,
+            )
+        ]
+
+    for index, example_input in enumerate(normalized_examples, start=1):
+        db.add(
+            ExampleSentence(
+                sense_id=sense_id,
+                source_text=example_input.source_text,
+                translated_text=example_input.translated_text,
+                position=example_input.position or index,
+            )
+        )
 
 
 def apply_word_filters(
