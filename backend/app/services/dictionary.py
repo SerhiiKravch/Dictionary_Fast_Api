@@ -12,8 +12,8 @@ from app.exceptions.dictionary import (
     WordAlreadyExistsError,
     WordNotFoundError,
 )
-from app.models.enums import LanguageCode, WordOrigin
-from app.models.word import Tag, TranslationOption, Word, WordInflection
+from app.models.enums import LanguageCode, PartOfSpeech, WordOrigin
+from app.models.word import ExampleSentence, Tag, TranslationOption, Word, WordInflection, WordSense
 from app.schemas.word import (
     GeneratedTranslationOption,
     GeneratedWordPayload,
@@ -80,6 +80,7 @@ def get_word_by_slug(db: Session, slug: str) -> Word:
             selectinload(Word.translation_options),
             selectinload(Word.tags),
             selectinload(Word.inflections),
+            selectinload(Word.senses).selectinload(WordSense.example_sentences),
         )
         .where(Word.slug == slug)
     )
@@ -178,9 +179,28 @@ def persist_word_with_options(
                     )
                 )
 
+            part_of_speech = derive_primary_part_of_speech(translation_options)
+            sense = WordSense(
+                word_id=word.id,
+                part_of_speech=part_of_speech,
+                primary_translation=primary_translation,
+                definition="",
+                position=1,
+            )
+            db.add(sense)
+            db.flush()
+
+            db.add(
+                ExampleSentence(
+                    sense_id=sense.id,
+                    source_text=context_sentence,
+                    translated_text="",
+                    position=1,
+                )
+            )
+
             db.commit()
-            db.refresh(word)
-            return word
+            return get_word_by_slug(db, slug)
 
         except IntegrityError as exc:
             db.rollback()
@@ -279,6 +299,19 @@ def autocomplete_words(db: Session, query: str) -> list[str]:
         raise DatabaseConnectionError("Database connection failed during autocomplete.") from exc
 
 
+def derive_primary_part_of_speech(
+    translation_options: Sequence[TranslationOptionInput],
+) -> str:
+    if not translation_options:
+        return PartOfSpeech.OTHER.value
+
+    primary_option = min(
+        enumerate(translation_options),
+        key=lambda item: (item[1].priority, item[0]),
+    )[1]
+    return primary_option.part_of_speech.value
+
+
 def apply_word_filters(
     stmt: Select[tuple[Word] | tuple[int]],
     *,
@@ -316,6 +349,7 @@ def paginate_words(
             selectinload(Word.translation_options),
             selectinload(Word.tags),
             selectinload(Word.inflections),
+            selectinload(Word.senses).selectinload(WordSense.example_sentences),
         ),
         source_language=source_language,
         target_language=target_language,
