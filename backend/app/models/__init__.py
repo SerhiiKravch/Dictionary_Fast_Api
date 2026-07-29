@@ -9,11 +9,20 @@ from app.models.enums import (
     RelationType,
     WordOrigin,
 )
-from app.models.word import Tag, TranslationOption, Word, WordInflection, WordRelation
+from app.models.word import (
+    ExampleSentence,
+    Tag,
+    TranslationOption,
+    Word,
+    WordInflection,
+    WordRelation,
+    WordSense,
+)
 
 __all__ = [
     "Base",
     "DifficultyLevel",
+    "ExampleSentence",
     "InflectionType",
     "LanguageCode",
     "PartOfSpeech",
@@ -24,4 +33,5 @@ __all__ = [
     "Word",
     "WordInflection",
     "WordRelation",
+    "WordSense",
 ]

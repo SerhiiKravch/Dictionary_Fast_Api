@@ -18,6 +18,9 @@ def test_lookup_or_create_word_creates_when_missing(db_session, monkeypatch) -> 
 
     assert word.source_word == "test"
     assert word.primary_translation == "тест"
+    assert len(word.senses) == 1
+    assert word.senses[0].primary_translation == "тест"
+    assert word.senses[0].example_sentences[0].source_text == "test sentence"
 
 
 def test_lookup_or_create_word_returns_existing_without_openai(

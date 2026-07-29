@@ -6,19 +6,22 @@ from app.exceptions.dictionary import (
     SameLanguageDirectionError,
     WordAlreadyExistsError,
 )
-from app.models.enums import DifficultyLevel, InflectionType, LanguageCode
+from app.models.enums import DifficultyLevel, InflectionType, LanguageCode, PartOfSpeech
 from app.services import dictionary
 from app.services.dictionary import (
     create_word_manually,
+    get_word_by_slug,
     normalize_word,
     parse_direction,
     validate_language_direction,
 )
 from app.services.word_metadata_service import normalize_tags, validate_tag_name
 from tests.factories import (
+    make_example_sentence_create,
     make_translation_option_create,
     make_word_create,
     make_word_inflection_create,
+    make_word_sense_create,
 )
 
 pytestmark = pytest.mark.unit
@@ -95,6 +98,11 @@ def test_create_word_manually_persists_word_and_options(db_session) -> None:
     assert word.source_word == "apple"
     assert word.slug.startswith("apple-en-uk")
     assert len(word.translation_options) == 1
+    assert len(word.senses) == 1
+    assert word.senses[0].primary_translation == "яблуко"
+    assert word.senses[0].part_of_speech == "noun"
+    assert len(word.senses[0].example_sentences) == 1
+    assert word.senses[0].example_sentences[0].source_text == "I ate an apple."
 
 
 def test_create_word_manually_rejects_duplicate_direction(db_session) -> None:
@@ -148,6 +156,81 @@ def test_create_word_manually_persists_difficulty_tags_and_inflections(db_sessio
         (InflectionType.PAST_SIMPLE.value, "ran"),
         (InflectionType.PAST_PARTICIPLE.value, "run"),
     ]
+
+
+def test_create_word_manually_creates_default_sense_without_translation_options(db_session) -> None:
+    payload = make_word_create(
+        source_word="banana",
+        primary_translation="банан",
+        context_sentence="I ate a banana.",
+        translation_options=[],
+    )
+
+    word = create_word_manually(db=db_session, payload=payload)
+
+    assert len(word.senses) == 1
+    assert word.senses[0].part_of_speech == "other"
+    assert word.senses[0].primary_translation == "банан"
+    assert word.senses[0].example_sentences[0].source_text == "I ate a banana."
+
+
+def test_create_word_manually_persists_multiple_senses(db_session) -> None:
+    payload = make_word_create(
+        source_word="run",
+        primary_translation="бігти",
+        context_sentence="I run every morning.",
+        senses=[
+            make_word_sense_create(
+                part_of_speech=PartOfSpeech.VERB,
+                primary_translation="бігти",
+                position=1,
+                example_sentences=[
+                    make_example_sentence_create(source_text="I run every morning.")
+                ],
+            ),
+            make_word_sense_create(
+                part_of_speech=PartOfSpeech.NOUN,
+                primary_translation="пробіжка",
+                position=2,
+                example_sentences=[
+                    make_example_sentence_create(
+                        source_text="She went for a run.",
+                        position=1,
+                    )
+                ],
+            ),
+        ],
+    )
+
+    word = create_word_manually(db=db_session, payload=payload)
+
+    assert len(word.senses) == 2
+    assert [sense.primary_translation for sense in word.senses] == ["бігти", "пробіжка"]
+    assert word.primary_translation == "бігти"
+    assert word.context_sentence == "I run every morning."
+
+
+def test_get_word_by_slug_returns_word_with_senses_and_examples(db_session) -> None:
+    created_word = create_word_manually(
+        db=db_session,
+        payload=make_word_create(
+            source_word="speak",
+            primary_translation="говорити",
+            context_sentence="We speak every day.",
+            translation_options=[
+                make_translation_option_create(
+                    text="говорити",
+                    part_of_speech=PartOfSpeech.VERB,
+                )
+            ],
+        ),
+    )
+
+    loaded_word = get_word_by_slug(db=db_session, slug=created_word.slug)
+
+    assert len(loaded_word.senses) == 1
+    assert loaded_word.senses[0].part_of_speech == "verb"
+    assert loaded_word.senses[0].example_sentences[0].source_text == "We speak every day."
 
 
 def test_create_word_manually_adds_suffix_on_slug_conflict(db_session, monkeypatch) -> None:

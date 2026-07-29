@@ -206,6 +206,8 @@ def test_post_api_words_creates_word(client) -> None:
     body = response.json()
     assert body["source_word"] == "apple"
     assert body["slug"].startswith("apple-en-uk")
+    assert body["senses"][0]["primary_translation"] == "яблуко"
+    assert body["senses"][0]["example_sentences"][0]["source_text"] == "I ate an apple."
 
 
 def test_post_api_words_creates_word_with_metadata(client) -> None:
@@ -231,6 +233,52 @@ def test_post_api_words_creates_word_with_metadata(client) -> None:
         ("past_simple", "ran"),
         ("past_participle", "run"),
     ]
+    assert body["senses"][0]["part_of_speech"] == "other"
+
+
+def test_post_api_words_creates_word_with_senses_payload(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            primary_translation=None,
+            context_sentence=None,
+            senses=[
+                {
+                    "part_of_speech": "verb",
+                    "primary_translation": "бігти",
+                    "definition": "to move quickly on foot",
+                    "position": 1,
+                    "example_sentences": [
+                        {
+                            "source_text": "I run every morning.",
+                            "translated_text": "Я бігаю щоранку.",
+                            "position": 1,
+                        }
+                    ],
+                },
+                {
+                    "part_of_speech": "noun",
+                    "primary_translation": "пробіжка",
+                    "definition": "an act of running",
+                    "position": 2,
+                    "example_sentences": [
+                        {
+                            "source_text": "She went for a run.",
+                            "translated_text": "Вона пішла на пробіжку.",
+                            "position": 1,
+                        }
+                    ],
+                },
+            ],
+        ),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["primary_translation"] == "бігти"
+    assert body["context_sentence"] == "I run every morning."
+    assert len(body["senses"]) == 2
+    assert body["senses"][1]["primary_translation"] == "пробіжка"
 
 
 def test_post_api_words_returns_409_for_duplicate(client) -> None:
@@ -245,6 +293,20 @@ def test_post_api_words_returns_409_for_duplicate(client) -> None:
 
 def test_post_api_words_returns_422_for_invalid_body(client) -> None:
     response = client.post("/api/words", json={"source_word": "apple"})
+
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "request_validation_error"
+
+
+def test_post_api_words_returns_422_when_legacy_and_senses_are_missing(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(
+            primary_translation=None,
+            context_sentence=None,
+            senses=[],
+        ),
+    )
 
     assert response.status_code == 422
     assert response.json()["error_code"] == "request_validation_error"
@@ -310,6 +372,7 @@ def test_get_api_word_by_slug_returns_word(client) -> None:
     body = response.json()
     assert body["slug"] == slug
     assert body["source_word"] == "apple"
+    assert body["senses"][0]["primary_translation"] == "яблуко"
 
 
 def test_get_api_word_by_slug_returns_metadata(client) -> None:
@@ -337,6 +400,7 @@ def test_get_api_word_by_slug_returns_metadata(client) -> None:
     assert body["inflections"] == [
         {"id": 1, "form_type": "past_simple", "value": "ran", "notes": ""}
     ]
+    assert body["senses"][0]["example_sentences"][0]["source_text"] == "I run every morning."
 
 
 def test_get_api_word_by_slug_returns_404_for_missing_word(client) -> None:

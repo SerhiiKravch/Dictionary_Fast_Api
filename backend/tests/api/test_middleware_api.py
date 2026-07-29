@@ -23,6 +23,23 @@ def test_post_lookup_returns_429_when_rate_limit_is_exceeded(client, monkeypatch
             updated_at="2026-07-24T00:00:00Z",
             tags=[],
             inflections=[],
+            senses=[
+                {
+                    "id": 1,
+                    "part_of_speech": "other",
+                    "primary_translation": "тест",
+                    "definition": "",
+                    "position": 1,
+                    "example_sentences": [
+                        {
+                            "id": 1,
+                            "source_text": "test sentence",
+                            "translated_text": "",
+                            "position": 1,
+                        }
+                    ],
+                }
+            ],
             translation_options=[],
         )
 

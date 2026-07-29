@@ -9,10 +9,12 @@ from app.models.enums import (
     WordOrigin,
 )
 from app.schemas.word import (
+    ExampleSentenceCreate,
     TranslationOptionCreate,
     WordCreate,
     WordInflectionCreate,
     WordRelationCreate,
+    WordSenseCreate,
 )
 
 
@@ -43,6 +45,7 @@ def make_word_create(
     origin: WordOrigin = WordOrigin.MANUAL,
     tags: list[str] | None = None,
     inflections: list[WordInflectionCreate] | None = None,
+    senses: list[WordSenseCreate] | None = None,
     translation_options: list[TranslationOptionCreate] | None = None,
 ) -> WordCreate:
     return WordCreate(
@@ -56,6 +59,7 @@ def make_word_create(
         origin=origin,
         tags=tags or [],
         inflections=inflections or [],
+        senses=senses or [],
         translation_options=translation_options or [],
     )
 
@@ -73,6 +77,36 @@ def make_word_inflection_create(
     )
 
 
+def make_example_sentence_create(
+    *,
+    source_text: str = "I ate an apple.",
+    translated_text: str = "",
+    position: int = 1,
+) -> ExampleSentenceCreate:
+    return ExampleSentenceCreate(
+        source_text=source_text,
+        translated_text=translated_text,
+        position=position,
+    )
+
+
+def make_word_sense_create(
+    *,
+    part_of_speech: PartOfSpeech = PartOfSpeech.NOUN,
+    primary_translation: str = "яблуко",
+    definition: str = "",
+    position: int = 1,
+    example_sentences: list[ExampleSentenceCreate] | None = None,
+) -> WordSenseCreate:
+    return WordSenseCreate(
+        part_of_speech=part_of_speech,
+        primary_translation=primary_translation,
+        definition=definition,
+        position=position,
+        example_sentences=example_sentences or [],
+    )
+
+
 def make_word_create_payload(**overrides: object) -> dict[str, object]:
     payload = {
         "source_word": "apple",
@@ -85,6 +119,7 @@ def make_word_create_payload(**overrides: object) -> dict[str, object]:
         "origin": "manual",
         "tags": [],
         "inflections": [],
+        "senses": [],
         "translation_options": [],
     }
     payload.update(overrides)
