@@ -103,6 +103,11 @@ class Word(Base):
         cascade="all, delete-orphan",
         foreign_keys="WordRelation.target_word_id",
     )
+    senses: Mapped[list["WordSense"]] = relationship(
+        back_populates="word",
+        cascade="all, delete-orphan",
+        order_by="WordSense.position",
+    )
 
 
 class TranslationOption(Base):
@@ -220,3 +225,71 @@ class WordRelation(Base):
         back_populates="incoming_relations",
         foreign_keys=[target_word_id],
     )
+
+
+class WordSense(Base):
+    __tablename__ = "word_senses"
+    __table_args__ = (
+        CheckConstraint("position >= 1", name="ck_word_sense_position_positive"),
+        CheckConstraint(
+            "part_of_speech IN ("
+            "'noun',"
+            "'verb',"
+            "'adjective',"
+            "'adverb',"
+            "'pronoun',"
+            "'preposition',"
+            "'conjunction',"
+            "'interjection',"
+            "'phrase',"
+            "'other'"
+            ")",
+            name="ck_word_sense_part_of_speech",
+        ),
+        UniqueConstraint("word_id", "position", name="uq_word_sense_position"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    word_id: Mapped[int] = mapped_column(
+        ForeignKey("words.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    part_of_speech: Mapped[str] = mapped_column(
+        String(20), default=PartOfSpeech.OTHER.value, nullable=False
+    )
+    primary_translation: Mapped[str] = mapped_column(String(256), nullable=False)
+    definition: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    word: Mapped[Word] = relationship(back_populates="senses")
+    example_sentences: Mapped[list["ExampleSentence"]] = relationship(
+        back_populates="sense",
+        cascade="all, delete-orphan",
+        order_by="ExampleSentence.position",
+    )
+
+
+class ExampleSentence(Base):
+    __tablename__ = "example_sentences"
+    __table_args__ = (
+        CheckConstraint("position >= 1", name="ck_example_sentence_position_positive"),
+        UniqueConstraint("sense_id", "position", name="uq_example_sentence_position"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sense_id: Mapped[int] = mapped_column(
+        ForeignKey("word_senses.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)
+    translated_text: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    sense: Mapped[WordSense] = relationship(back_populates="example_sentences")
