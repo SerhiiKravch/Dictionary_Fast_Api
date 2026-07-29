@@ -1,15 +1,27 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from alembic import command
+from alembic.config import Config
 from app.exceptions.dictionary import WordAlreadyExistsError
 from app.models.enums import LanguageCode, WordOrigin
 from app.models.word import Word
+from app.services import dictionary
 from app.services.dictionary import create_word_manually
 from tests.factories import make_word_create, make_word_create_payload
+from tests.fakes import FakeOpenAIService
+from tests.integration.conftest import POSTGRES_TEST_DATABASE_URL
 
 pytestmark = pytest.mark.integration
+
+
+def make_alembic_config() -> Config:
+    alembic_config = Config("alembic.ini")
+    alembic_config.set_main_option("sqlalchemy.url", POSTGRES_TEST_DATABASE_URL)
+    return alembic_config
 
 
 def test_postgres_create_word_rejects_duplicate_direction(postgres_db_session) -> None:
@@ -101,3 +113,119 @@ def test_postgres_api_word_detail_returns_translation_options(postgres_client) -
     body = response.json()
     assert body["slug"] == slug
     assert body["translation_options"][0]["text"] == "яблуко"
+
+
+def test_postgres_lookup_returns_structured_senses(postgres_client, monkeypatch) -> None:
+    monkeypatch.setattr(dictionary, "OpenAIService", FakeOpenAIService)
+
+    response = postgres_client.post("/lookup", json={"word": "test", "direction": "en:uk"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["primary_translation"] == "тест"
+    assert len(body["senses"]) == 1
+    assert body["senses"][0]["primary_translation"] == "тест"
+    assert body["senses"][0]["example_sentences"][0]["source_text"] == "test sentence"
+
+
+def test_postgres_backfill_migration_creates_word_sense_and_example(postgres_engine) -> None:
+    alembic_config = make_alembic_config()
+    command.downgrade(alembic_config, "6f8e9a0b1c2d")
+
+    try:
+        with postgres_engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO words (
+                        id,
+                        source_word,
+                        source_language,
+                        target_language,
+                        slug,
+                        transcription,
+                        primary_translation,
+                        context_sentence,
+                        difficulty_level,
+                        origin,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (
+                        1,
+                        'apple',
+                        'en',
+                        'uk',
+                        'apple-en-uk',
+                        '[ap-l]',
+                        'яблуко',
+                        'I ate an apple.',
+                        NULL,
+                        'manual',
+                        now(),
+                        now()
+                    )
+                    """
+                )
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO translation_options (
+                        word_id,
+                        text,
+                        part_of_speech,
+                        priority,
+                        usage_note
+                    )
+                    VALUES (
+                        1,
+                        'яблуко',
+                        'noun',
+                        1,
+                        'basic'
+                    )
+                    """
+                )
+            )
+
+        command.upgrade(alembic_config, "head")
+
+        with postgres_engine.connect() as connection:
+            sense_row = (
+                connection.execute(
+                    text(
+                        """
+                    SELECT part_of_speech, primary_translation, position
+                    FROM word_senses
+                    WHERE word_id = 1
+                    """
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            example_row = (
+                connection.execute(
+                    text(
+                        """
+                    SELECT source_text, translated_text, position
+                    FROM example_sentences
+                    WHERE sense_id = (
+                        SELECT id FROM word_senses WHERE word_id = 1
+                    )
+                    """
+                    )
+                )
+                .mappings()
+                .one()
+            )
+
+        assert sense_row["part_of_speech"] == "noun"
+        assert sense_row["primary_translation"] == "яблуко"
+        assert sense_row["position"] == 1
+        assert example_row["source_text"] == "I ate an apple."
+        assert example_row["translated_text"] == ""
+        assert example_row["position"] == 1
+    finally:
+        command.upgrade(alembic_config, "head")
