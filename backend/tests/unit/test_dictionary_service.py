@@ -17,9 +17,11 @@ from app.services.dictionary import (
 )
 from app.services.word_metadata_service import normalize_tags, validate_tag_name
 from tests.factories import (
+    make_example_sentence_create,
     make_translation_option_create,
     make_word_create,
     make_word_inflection_create,
+    make_word_sense_create,
 )
 
 pytestmark = pytest.mark.unit
@@ -170,6 +172,42 @@ def test_create_word_manually_creates_default_sense_without_translation_options(
     assert word.senses[0].part_of_speech == "other"
     assert word.senses[0].primary_translation == "банан"
     assert word.senses[0].example_sentences[0].source_text == "I ate a banana."
+
+
+def test_create_word_manually_persists_multiple_senses(db_session) -> None:
+    payload = make_word_create(
+        source_word="run",
+        primary_translation="бігти",
+        context_sentence="I run every morning.",
+        senses=[
+            make_word_sense_create(
+                part_of_speech=PartOfSpeech.VERB,
+                primary_translation="бігти",
+                position=1,
+                example_sentences=[
+                    make_example_sentence_create(source_text="I run every morning.")
+                ],
+            ),
+            make_word_sense_create(
+                part_of_speech=PartOfSpeech.NOUN,
+                primary_translation="пробіжка",
+                position=2,
+                example_sentences=[
+                    make_example_sentence_create(
+                        source_text="She went for a run.",
+                        position=1,
+                    )
+                ],
+            ),
+        ],
+    )
+
+    word = create_word_manually(db=db_session, payload=payload)
+
+    assert len(word.senses) == 2
+    assert [sense.primary_translation for sense in word.senses] == ["бігти", "пробіжка"]
+    assert word.primary_translation == "бігти"
+    assert word.context_sentence == "I run every morning."
 
 
 def test_get_word_by_slug_returns_word_with_senses_and_examples(db_session) -> None:
