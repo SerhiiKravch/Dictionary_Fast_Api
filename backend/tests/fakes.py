@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from app.models.enums import PartOfSpeech, WordOrigin
-from app.schemas.word import GeneratedTranslationOption, GeneratedWordPayload
+from app.schemas.word import (
+    ExampleSentenceCreate,
+    GeneratedTranslationOption,
+    GeneratedWordPayload,
+    WordSenseCreate,
+)
 
 
 class FakeOpenAIService:
@@ -11,9 +16,24 @@ class FakeOpenAIService:
             source_language=source_language,
             target_language=target_language,
             transcription="[test]",
-            primary_translation="тест",
-            context_sentence="test sentence",
+            primary_translation=None,
+            context_sentence=None,
             origin=WordOrigin.OPENAI,
+            senses=[
+                WordSenseCreate(
+                    part_of_speech=PartOfSpeech.NOUN,
+                    primary_translation="тест",
+                    definition="generated test meaning",
+                    position=1,
+                    example_sentences=[
+                        ExampleSentenceCreate(
+                            source_text="test sentence",
+                            translated_text="тестове речення",
+                            position=1,
+                        )
+                    ],
+                )
+            ],
             translation_options=[
                 GeneratedTranslationOption(
                     text="тест",

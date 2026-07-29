@@ -34,7 +34,12 @@ class OpenAIService:
         return (
             f"Generate dictionary data for '{word}' from "
             f"{source_language.value} to {target_language.value}. "
-            "Return valid JSON."
+            "Return valid JSON matching the schema. "
+            "Use the senses array as the primary structure: include one or more senses, "
+            "each with part_of_speech, primary_translation, optional definition, and "
+            "example_sentences. Each example sentence should include source_text and "
+            "translated_text. Keep legacy primary_translation and context_sentence "
+            "consistent with the first sense and its first example sentence."
         )
 
     def generate_word_payload(
