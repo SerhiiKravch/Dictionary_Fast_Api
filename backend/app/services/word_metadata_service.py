@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 
 from app.models.word import Tag
@@ -6,7 +7,7 @@ MAX_TAG_LENGTH = 32
 
 
 def normalize_tag_name(tag: str) -> str:
-    return tag.strip().lower()
+    return re.sub(r"\s+", "-", tag.strip().lower())
 
 
 def validate_tag_name(tag: str) -> str:

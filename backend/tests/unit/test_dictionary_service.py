@@ -65,9 +65,13 @@ def test_validate_tag_name_normalizes_value() -> None:
     assert validate_tag_name(" Spoken_Word ") == "spoken_word"
 
 
+def test_validate_tag_name_replaces_spaces_with_hyphens() -> None:
+    assert validate_tag_name("computer science") == "computer-science"
+
+
 def test_validate_tag_name_rejects_invalid_characters() -> None:
     with pytest.raises(ValueError, match="letters, digits, hyphens, and underscores"):
-        validate_tag_name("spoken word")
+        validate_tag_name("spoken!")
 
 
 def test_normalize_tags_sorts_and_deduplicates() -> None:

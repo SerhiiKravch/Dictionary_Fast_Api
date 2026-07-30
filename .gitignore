@@ -21,7 +21,7 @@ htmlcov/
 
 # Editors / OS
 .DS_Store
-.vscode/
+*.vscode/
 .idea/
 
 # Database / runtime

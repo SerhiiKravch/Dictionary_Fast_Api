@@ -315,13 +315,24 @@ def test_post_api_words_returns_422_when_legacy_and_senses_are_missing(client) -
 def test_post_api_words_returns_422_for_invalid_tag(client) -> None:
     response = client.post(
         "/api/words",
-        json=make_word_create_payload(tags=["spoken word"]),
+        json=make_word_create_payload(tags=["spoken!word"]),
     )
 
     assert response.status_code == 422
     body = response.json()
     assert body["error_code"] == "request_validation_error"
     assert any("Tag may contain only letters" in error["msg"] for error in body["errors"])
+
+
+def test_post_api_words_normalizes_tags_with_spaces(client) -> None:
+    response = client.post(
+        "/api/words",
+        json=make_word_create_payload(tags=["computer science", "spoken english"]),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert [tag["name"] for tag in body["tags"]] == ["computer-science", "spoken-english"]
 
 
 def test_post_api_words_returns_422_for_duplicate_inflection_types(client) -> None:

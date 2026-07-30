@@ -22,7 +22,6 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-dictionary_user}:${POSTGRES_PASSWORD:-dictionary_pass}@db:5432/${POSTGRES_DB:-dictionary}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
     ports:
       - "8000:8000"

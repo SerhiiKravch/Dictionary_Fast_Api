@@ -1,4 +1,5 @@
 from openai import APIError, OpenAI, OpenAIError, RateLimitError
+from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.exceptions.openai import (
@@ -39,7 +40,10 @@ class OpenAIService:
             "each with part_of_speech, primary_translation, optional definition, and "
             "example_sentences. Each example sentence should include source_text and "
             "translated_text. Keep legacy primary_translation and context_sentence "
-            "consistent with the first sense and its first example sentence."
+            "consistent with the first sense and its first example sentence. "
+            "Tags must be short lowercase labels that use only letters, digits, "
+            "hyphens, or underscores. Never include spaces in tags. "
+            "Example tags: business, spoken, computer-science."
         )
 
     def generate_word_payload(
@@ -62,6 +66,10 @@ class OpenAIService:
             raise OpenAIUnavailableError("OpenAI API request failed.") from exc
         except OpenAIError as exc:
             raise OpenAIUnavailableError("OpenAI client request failed.") from exc
+        except ValidationError as exc:
+            raise OpenAIResponseFormatError(
+                "OpenAI returned an invalid structured response."
+            ) from exc
 
         if response.output_parsed is None:
             raise OpenAIResponseFormatError("OpenAI returned an invalid structured response.")
